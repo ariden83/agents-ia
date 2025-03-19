@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Développeur Frontend IA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/css.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/html.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/json.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f7f9fc;
+        }
+        
+        .container {
+            max-width: 1200px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Courier New', Courier, monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .response-container {
+            margin-top: 30px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        
+        .log-container {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .files-container {
+            max-height: 400px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+        }
+        
+        .file-item {
+            background-color: white;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        
+        .file-header {
+            background-color: #f1f1f1;
+            padding: 8px 15px;
+            font-weight: 600;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-content {
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .file-content.collapsed {
+            display: none;
+        }
+        
+        .toggle-button {
+            background-color: transparent;
+            border: none;
+            font-size: 0.9em;
+            color: #6c757d;
+            cursor: pointer;
+        }
+        
+        .log-info {
+            color: #0c5460;
+        }
+        
+        .log-error {
+            color: #721c24;
+        }
+        
+        .log-success {
+            color: #155724;
+        }
+        
+        .log-warning {
+            color: #856404;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        code {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.9em;
+        }
+        
+        .btn-primary {
+            background-color: #4a6bdf;
+            border-color: #4a6bdf;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3952b3;
+            border-color: #3952b3;
+        }
+        
+        .workflow-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .workflow-step {
+            flex: 0 0 200px;
+            text-align: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            position: relative;
+            margin: 0 10px;
+        }
+        
+        .workflow-step.active {
+            background-color: #e2f0d9;
+            border-color: #c6e0b4;
+        }
+        
+        .workflow-step.completed {
+            background-color: #d9ead3;
+            border-color: #b6d7a8;
+        }
+        
+        .workflow-step:not(:last-child)::after {
+            content: "→";
+            position: absolute;
+            right: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            color: #555;
+        }
+        
+        .workflow-step h5 {
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .workflow-step p {
+            margin-bottom: 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .copy-button {
+            padding: 3px 8px;
+            font-size: 0.8em;
+            margin-left: 8px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .copy-button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .project-info {
+            background-color: #e9f7fe;
+            border: 1px solid #d0e8f6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .project-info p {
+            margin-bottom: 5px;
+        }
+        
+        .project-path {
+            font-family: monospace;
+            background-color: #f5f5f5;
+            padding: 5px;
+            border-radius: 3px;
+        }
+    </style>
+
+    <style>
+        .log-info { color: #0c5460; }
+        .log-error { color: #721c24; }
+        .log-success { color: #155724; }
+        .log-warning { color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Logs:</h3>
+        <div class="log-container" id="log-container" style="height: 250px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 20px; font-family: 'Courier New', monospace;"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Agent Développeur Frontend IA</h1>
+            <p class="lead">Génération de code frontend avec Claude et Cursor</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-5">
+                <div class="form-section">
+                    <form id="frontendRequestForm">
+                        <div class="form-group">
+                            <label for="project-specs">Spécifications du Projet:</label>
+                            <textarea class="form-control" id="project-specs" rows="8" placeholder="Collez ici les spécifications du projet ou entrez une description détaillée..."></textarea>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="open-cursor">
+                            <label class="form-check-label" for="open-cursor">
+                                Ouvrir avec Cursor après génération
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" id="submit-button">Générer le Code Frontend</button>
+                    </form>
+                </div>
+                
+                <div class="log-section mt-4">
+                    <h4>Logs:</h4>
+                    <div class="log-container" id="log-container"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-7">
+                <div class="workflow-container">
+                    <div class="workflow-step" id="step-structure">
+                        <h5>Structure</h5>
+                        <p>Création de la structure du projet</p>
+                    </div>
+                    <div class="workflow-step" id="step-code">
+                        <h5>Code</h5>
+                        <p>Génération des fichiers</p>
+                    </div>
+                    <div class="workflow-step" id="step-cursor">
+                        <h5>Cursor</h5>
+                        <p>Ouverture avec Cursor</p>
+                    </div>
+                </div>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p>Génération du code en cours, veuillez patienter...</p>
+                </div>
+                
+                <div class="project-info" id="project-info" style="display: none;">
+                    <h4>Informations sur le Projet</h4>
+                    <p><strong>Répertoire:</strong> <span class="project-path" id="project-path"></span></p>
+                    <p><strong>Nombre de fichiers:</strong> <span id="files-count">0</span></p>
+                    <p><strong>Cursor:</strong> <span id="cursor-status">Non lancé</span></p>
+                </div>
+                
+                <div class="response-container" id="files-container" style="display: none;">
+                    <h4>Fichiers Générés:</h4>
+                    <div class="files-list" id="files-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+    
+    // Gestionnaire d'événements pour les logs
+    socket.on('log', function(data) {
+        console.log('Log reçu:', data.type, data.message);
+        addLog(data.type, data.message);
+    });
+    
+    // Au moment de la connexion, demander les logs précédents
+    socket.on('connect', function() {
+        console.log('Connexion Socket.IO établie');
+        socket.emit('request_logs');
+    });
+    
+    // Fonction pour ajouter un log
+    function addLog(type, message) {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error("Élément 'log-container' non trouvé");
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-${type}`;
+        logEntry.textContent = message;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+            const logContainer = document.getElementById('log-container');
+            const filesContainer = document.getElementById('files-container');
+            const filesList = document.getElementById('files-list');
+            const loading = document.getElementById('loading');
+            const form = document.getElementById('frontendRequestForm');
+            const submitButton = document.getElementById('submit-button');
+            const projectInfo = document.getElementById('project-info');
+            const projectPath = document.getElementById('project-path');
+            const filesCount = document.getElementById('files-count');
+            const cursorStatus = document.getElementById('cursor-status');
+            
+            // Référence aux étapes du workflow
+            const stepStructure = document.getElementById('step-structure');
+            const stepCode = document.getElementById('step-code');
+            const stepCursor = document.getElementById('step-cursor');
+            
+            // Fonction pour ajouter un log
+            function addLog(type, message) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-${type}`;
+                logEntry.textContent = message;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Fonction pour copier du texte dans le presse-papier
+            function copyToClipboard(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            
+            // Écouter les événements de log du serveur
+            socket.on('log', function(data) {
+                addLog(data.type, data.message);
+            });
+            
+            // Écouter l'événement de début de chargement
+            socket.on('loading_start', function() {
+                loading.style.display = 'block';
+                submitButton.disabled = true;
+            });
+            
+            // Écouter l'événement de fin de chargement
+            socket.on('loading_end', function() {
+                loading.style.display = 'none';
+                submitButton.disabled = false;
+            });
+            
+            // Mise à jour du répertoire du projet
+            socket.on('project_dir_update', function(data) {
+                projectInfo.style.display = 'block';
+                projectPath.textContent = data.project_dir;
+                stepStructure.classList.add('completed');
+                stepCode.classList.add('active');
+            });
+            
+            // Mise à jour des fichiers générés
+            socket.on('files_update', function(data) {
+                filesContainer.style.display = 'block';
+                filesCount.textContent = data.files.length;
+                filesList.innerHTML = '';
+                
+                data.files.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    // Déterminer le langage pour la coloration syntaxique
+                    let language = '';
+                    if (file.file_path.endsWith('.js') || file.file_path.endsWith('.jsx')) {
+                        language = 'javascript';
+                    } else if (file.file_path.endsWith('.css')) {
+                        language = 'css';
+                    } else if (file.file_path.endsWith('.html')) {
+                        language = 'html';
+                    } else if (file.file_path.endsWith('.json')) {
+                        language = 'json';
+                    }
+                    
+                    // Création de l'en-tête du fichier
+                    const fileHeader = document.createElement('div');
+                    fileHeader.className = 'file-header';
+                    
+                    const fileName = document.createElement('span');
+                    fileName.textContent = file.file_path;
+                    
+                    const buttonGroup = document.createElement('div');
+                    
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'copy-button';
+                    copyButton.textContent = 'Copier';
+                    copyButton.onclick = function() {
+                        copyToClipboard(file.content);
+                        copyButton.textContent = 'Copié!';
+                        setTimeout(() => {
+                            copyButton.textContent = 'Copier';
+                        }, 2000);
+                    };
+                    
+                    const toggleButton = document.createElement('button');
+                    toggleButton.className = 'toggle-button';
+                    toggleButton.textContent = 'Masquer';
+                    toggleButton.onclick = function() {
+                        const content = fileItem.querySelector('.file-content');
+                        content.classList.toggle('collapsed');
+                        toggleButton.textContent = content.classList.contains('collapsed') ? 'Afficher' : 'Masquer';
+                    };
+                    
+                    buttonGroup.appendChild(copyButton);
+                    buttonGroup.appendChild(toggleButton);
+                    
+                    fileHeader.appendChild(fileName);
+                    fileHeader.appendChild(buttonGroup);
+                    
+                    // Création du contenu du fichier
+                    const fileContent = document.createElement('div');
+                    fileContent.className = 'file-content';
+                    
+                    const pre = document.createElement('pre');
+                    const code = document.createElement('code');
+                    if (language) {
+                        code.className = `language-${language}`;
+                    }
+                    code.textContent = file.content;
+                    
+                    pre.appendChild(code);
+                    fileContent.appendChild(pre);
+                    
+                    fileItem.appendChild(fileHeader);
+                    fileItem.appendChild(fileContent);
+                    filesList.appendChild(fileItem);
+                });
+                
+                // Appliquer la coloration syntaxique
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+                
+                stepCode.classList.remove('active');
+                stepCode.classList.add('completed');
+                
+                if (document.getElementById('open-cursor').checked) {
+                    stepCursor.classList.add('active');
+                }
+            });
+            
+            // Projet complet
+            socket.on('frontend_complete', function() {
+                addLog('success', 'Génération du code frontend terminée!');
+                
+                if (document.getElementById('open-cursor').checked) {
+                    stepCursor.classList.remove('active');
+                    stepCursor.classList.add('completed');
+                    cursorStatus.textContent = 'Lancé avec succès';
+                } else {
+                    cursorStatus.textContent = 'Non demandé';
+                }
+                
+                submitButton.disabled = false;
+            });
+            
+            // Attente de confirmation utilisateur
+            socket.on('wait_for_user_action', function() {
+                const confirmButton = document.createElement('button');
+                confirmButton.className = 'btn btn-success mt-2';
+                confirmButton.textContent = 'Continuer';
+                confirmButton.onclick = function() {
+                    socket.emit('user_action_done');
+                    confirmButton.remove();
+                };
+                logContainer.appendChild(confirmButton);
+            });
+            
+            // Soumission du formulaire
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const specsInput = document.getElementById('project-specs').value;
+                const openCursor = document.getElementById('open-cursor').checked;
+                
+                if (!specsInput) {
+                    addLog('error', 'Veuillez fournir les spécifications du projet');
+                    return;
+                }
+                
+                // Tenter de parser les spécifications comme JSON si elles commencent par {
+                let specs;
+                if (specsInput.trim().startsWith('{')) {
+                    try {
+                        specs = JSON.parse(specsInput);
+                    } catch (error) {
+                        // Si le parsing échoue, utiliser le texte brut
+                        specs = { raw_specs: specsInput };
+                    }
+                } else {
+                    specs = { raw_specs: specsInput };
+                }
+                
+                // Réinitialiser l'interface
+                logContainer.innerHTML = '';
+                filesList.innerHTML = '';
+                filesContainer.style.display = 'none';
+                projectInfo.style.display = 'none';
+                
+                // Réinitialiser le workflow
+                stepStructure.classList.remove('active', 'completed');
+                stepCode.classList.remove('active', 'completed');
+                stepCursor.classList.remove('active', 'completed');
+                
+                // Activer la première étape
+                stepStructure.classList.add('active');
+                
+                // Envoyer la requête au serveur
+                submitButton.disabled = true;
+                addLog('info', 'Lancement de la génération de code frontend...');
+                
+                fetch('/frontend_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        specs: specs,
+                        open_cursor: openCursor
+                    }),
+                })
+                .then(response => response.json())
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    console.error('Erreur:', error);
+                    submitButton.disabled = false;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
