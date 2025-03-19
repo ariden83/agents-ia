@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Communication Sociale</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/json.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        
+        .container-fluid {
+            max-width: 1400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'Courier New', Courier, monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .social-icons {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+        
+        .social-icons .bi-twitter {
+            color: #1DA1F2;
+        }
+        
+        .social-icons .bi-linkedin {
+            color: #0077B5;
+        }
+        
+        .social-icons .bi-instagram {
+            color: #E1306C;
+        }
+        
+        .social-icons .bi-facebook {
+            color: #4267B2;
+        }
+        
+        .section-container {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        
+        .log-container {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-info {
+            color: #0c5460;
+        }
+        
+        .log-error {
+            color: #721c24;
+        }
+        
+        .log-success {
+            color: #155724;
+        }
+        
+        .log-warning {
+            color: #856404;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.9em;
+        }
+        
+        .btn-primary {
+            background-color: #6e48aa;
+            border-color: #6e48aa;
+        }
+        
+        .btn-primary:hover {
+            background-color: #5a3b8a;
+            border-color: #5a3b8a;
+        }
+        
+        .card {
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .card-header {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            padding: 12px 15px;
+        }
+        
+        .timeline {
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px 0;
+        }
+        
+        .timeline-item {
+            padding: 10px 40px;
+            position: relative;
+            background-color: inherit;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            left: 10px;
+            background-color: white;
+            border: 4px solid #6e48aa;
+            top: 15px;
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            left: 19px;
+            background-color: #6e48aa;
+            top: 15px;
+            z-index: 0;
+        }
+        
+        .timeline-item:last-child::before {
+            height: 0;
+        }
+        
+        .timeline-content {
+            padding: 15px;
+            background-color: white;
+            position: relative;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .timeline-date {
+            font-weight: bold;
+            color: #6e48aa;
+            margin-bottom: 5px;
+        }
+        
+        .platform-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        .platform-twitter {
+            background-color: rgba(29, 161, 242, 0.2);
+            color: #1DA1F2;
+            border: 1px solid #1DA1F2;
+        }
+        
+        .platform-linkedin {
+            background-color: rgba(0, 119, 181, 0.2);
+            color: #0077B5;
+            border: 1px solid #0077B5;
+        }
+        
+        .platform-instagram {
+            background-color: rgba(225, 48, 108, 0.2);
+            color: #E1306C;
+            border: 1px solid #E1306C;
+        }
+        
+        .platform-facebook {
+            background-color: rgba(66, 103, 178, 0.2);
+            color: #4267B2;
+            border: 1px solid #4267B2;
+        }
+        
+        .post-content {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .post-hashtags {
+            margin-top: 5px;
+            color: #007bff;
+        }
+        
+        .tab-content {
+            padding-top: 20px;
+        }
+        
+        .social-logo {
+            display: inline-block;
+            vertical-align: middle;
+            height: 40px;
+            margin-right: 15px;
+        }
+    </style>
+
+    <style>
+        .log-info { color: #0c5460; }
+        .log-error { color: #721c24; }
+        .log-success { color: #155724; }
+        .log-warning { color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Logs:</h3>
+        <div class="log-container" id="log-container" style="height: 250px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 20px; font-family: 'Courier New', monospace;"></div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="header">
+            <h1>
+                <svg class="social-logo" width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.486 2 2 6.486 2 12C2 17.514 6.486 22 12 22C17.514 22 22 17.514 22 12C22 6.486 17.514 2 12 2ZM10.001 8.282C10.001 8.114 10.077 7.952 10.213 7.838C10.349 7.723 10.526 7.679 10.7 7.719C11.137 7.823 11.606 7.889 12.001 7.889C12.396 7.889 12.865 7.823 13.302 7.719C13.476 7.679 13.653 7.723 13.789 7.838C13.925 7.952 14.001 8.115 14.001 8.282V9.157C14.001 9.325 14.065 9.486 14.181 9.602C14.297 9.719 14.458 9.782 14.626 9.782C14.951 9.782 15.21 10.033 15.222 10.355C15.234 10.689 14.965 10.965 14.634 10.965C14.466 10.965 14.305 11.029 14.189 11.145C14.073 11.261 14.009 11.422 14.009 11.59V11.73C14.009 11.898 14.074 12.059 14.19 12.175C14.306 12.291 14.466 12.356 14.634 12.356C14.959 12.356 15.219 12.608 15.231 12.932C15.243 13.266 14.975 13.543 14.643 13.543C14.475 13.543 14.314 13.608 14.198 13.725C14.082 13.842 14.018 14.004 14.018 14.173V14.231C14.018 14.4 14.084 14.562 14.2 14.679C14.317 14.796 14.477 14.861 14.646 14.861C14.972 14.861 15.232 15.114 15.243 15.438C15.255 15.772 14.986 16.049 14.654 16.049C14.486 16.049 14.324 16.114 14.208 16.23C14.091 16.347 14.027 16.509 14.027 16.677V17.717C14.027 18.057 13.755 18.328 13.415 18.328C13.243 18.328 13.082 18.252 12.967 18.117C12.763 17.877 12.392 17.877 12.188 18.117C12.073 18.252 11.911 18.328 11.74 18.328C11.4 18.328 11.128 18.057 11.128 17.717V16.677C11.128 16.509 11.064 16.347 10.947 16.23C10.831 16.114 10.669 16.049 10.501 16.049C10.169 16.049 9.9 15.772 9.912 15.438C9.923 15.114 10.183 14.861 10.509 14.861C10.677 14.861 10.838 14.796 10.955 14.679C11.072 14.562 11.137 14.4 11.137 14.231V14.173C11.137 14.004 11.073 13.842 10.956 13.725C10.84 13.608 10.679 13.543 10.51 13.543C10.179 13.543 9.91 13.266 9.922 12.932C9.934 12.608 10.193 12.356 10.52 12.356C10.688 12.356 10.849 12.291 10.965 12.175C11.081 12.059 11.145 11.898 11.145 11.73V11.59C11.145 11.422 11.081 11.261 10.965 11.145C10.849 11.029 10.688 10.965 10.52 10.965C10.188 10.965 9.92 10.689 9.931 10.355C9.943 10.033 10.203 9.782 10.529 9.782C10.697 9.782 10.858 9.719 10.974 9.602C11.09 9.486 11.154 9.325 11.154 9.157V8.282H10.001Z" fill="#6e48aa"/>
+                </svg>
+                Agent Communication Sociale
+            </h1>
+            <p class="lead">Gestion autonome de votre présence sur les réseaux sociaux</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-section">
+                    <form id="communicationRequestForm">
+                        <div class="form-group">
+                            <label for="project-name">Nom du Projet:</label>
+                            <input type="text" class="form-control" id="project-name" placeholder="Nom du projet">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-description">Description du Projet:</label>
+                            <textarea class="form-control" id="project-description" rows="5" placeholder="Décrivez votre projet, ses fonctionnalités et ses objectifs..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Réseaux sociaux cibles:</label>
+                            <div class="d-flex flex-wrap">
+                                <div class="form-check me-3 mb-2">
+                                    <input class="form-check-input" type="checkbox" id="twitter-checkbox" checked>
+                                    <label class="form-check-label" for="twitter-checkbox">
+                                        <i class="bi bi-twitter social-icons"></i> Twitter
+                                    </label>
+                                </div>
+                                <div class="form-check me-3 mb-2">
+                                    <input class="form-check-input" type="checkbox" id="linkedin-checkbox" checked>
+                                    <label class="form-check-label" for="linkedin-checkbox">
+                                        <i class="bi bi-linkedin social-icons"></i> LinkedIn
+                                    </label>
+                                </div>
+                                <div class="form-check me-3 mb-2">
+                                    <input class="form-check-input" type="checkbox" id="instagram-checkbox" checked>
+                                    <label class="form-check-label" for="instagram-checkbox">
+                                        <i class="bi bi-instagram social-icons"></i> Instagram
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <button type="button" id="create-strategy-btn" class="btn btn-primary me-2">
+                                    <i class="bi bi-lightbulb"></i> Créer stratégie de communication
+                                </button>
+                                <button type="button" id="schedule-posts-btn" class="btn btn-success me-2">
+                                    <i class="bi bi-calendar-check"></i> Planifier les posts
+                                </button>
+                                <button type="button" id="start-communication-btn" class="btn btn-warning me-2">
+                                    <i class="bi bi-play-fill"></i> Démarrer
+                                </button>
+                                <button type="button" id="stop-communication-btn" class="btn btn-danger">
+                                    <i class="bi bi-stop-fill"></i> Arrêter
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="log-section mt-4">
+                    <h4>Logs:</h4>
+                    <div class="log-container" id="log-container"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="loading" id="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p>Génération de la stratégie de communication en cours, veuillez patienter...</p>
+                </div>
+                
+                <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="strategy-tab" data-bs-toggle="tab" data-bs-target="#strategy" type="button" role="tab" aria-controls="strategy" aria-selected="true">Stratégie</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="calendar-tab" data-bs-toggle="tab" data-bs-target="#calendar" type="button" role="tab" aria-controls="calendar" aria-selected="false">Calendrier</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="posts-tab" data-bs-toggle="tab" data-bs-target="#posts" type="button" role="tab" aria-controls="posts" aria-selected="false">Posts</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="manual-post-tab" data-bs-toggle="tab" data-bs-target="#manual-post" type="button" role="tab" aria-controls="manual-post" aria-selected="false">Créer Post</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="resultTabsContent">
+                    <div class="tab-pane fade show active" id="strategy" role="tabpanel" aria-labelledby="strategy-tab">
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">Stratégie de communication</h5>
+                            </div>
+                            <div class="card-body" id="strategy-content">
+                                <p class="text-muted">Cliquez sur "Créer stratégie de communication" pour générer une stratégie adaptée à votre projet.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="calendar" role="tabpanel" aria-labelledby="calendar-tab">
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">Calendrier éditorial</h5>
+                            </div>
+                            <div class="card-body" id="calendar-content">
+                                <p class="text-muted">Cliquez sur "Planifier les posts" pour générer un calendrier éditorial.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="posts" role="tabpanel" aria-labelledby="posts-tab">
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">Publications planifiées</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="timeline" id="posts-timeline">
+                                    <p class="text-muted">Aucune publication planifiée pour le moment.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="manual-post" role="tabpanel" aria-labelledby="manual-post-tab">
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5 class="mb-0">Création manuelle de post</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="manualPostForm">
+                                    <div class="form-group mb-3">
+                                        <label for="platform-select">Plateforme:</label>
+                                        <select class="form-control" id="platform-select">
+                                            <option value="Twitter">Twitter</option>
+                                            <option value="LinkedIn">LinkedIn</option>
+                                            <option value="Instagram">Instagram</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label for="content-type-select">Type de contenu:</label>
+                                        <select class="form-control" id="content-type-select">
+                                            <option value="Annonce">Annonce</option>
+                                            <option value="Mise à jour">Mise à jour</option>
+                                            <option value="Témoignage">Témoignage</option>
+                                            <option value="Tutoriel">Tutoriel</option>
+                                            <option value="Sondage">Sondage</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label for="special-event">Événement spécial (optionnel):</label>
+                                        <input type="text" class="form-control" id="special-event" placeholder="Lancement produit, anniversaire, etc.">
+                                    </div>
+                                    
+                                    <button type="button" id="generate-post-btn" class="btn btn-primary me-2">
+                                        <i class="bi bi-pencil-square"></i> Générer contenu
+                                    </button>
+                                    
+                                    <button type="button" id="post-now-btn" class="btn btn-success" disabled>
+                                        <i class="bi bi-send"></i> Publier maintenant
+                                    </button>
+                                    
+                                    <div class="card mt-4" id="generated-post-card" style="display: none;">
+                                        <div class="card-header">
+                                            Post généré
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="generated-post-content"></div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+    
+    // Gestionnaire d'événements pour les logs
+    socket.on('log', function(data) {
+        console.log('Log reçu:', data.type, data.message);
+        addLog(data.type, data.message);
+    });
+    
+    // Au moment de la connexion, demander les logs précédents
+    socket.on('connect', function() {
+        console.log('Connexion Socket.IO établie');
+        socket.emit('request_logs');
+    });
+    
+    // Fonction pour ajouter un log
+    function addLog(type, message) {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error("Élément 'log-container' non trouvé");
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-${type}`;
+        logEntry.textContent = message;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+            const logContainer = document.getElementById('log-container');
+            const loading = document.getElementById('loading');
+            
+            // Boutons
+            const createStrategyBtn = document.getElementById('create-strategy-btn');
+            const schedulePostsBtn = document.getElementById('schedule-posts-btn');
+            const startCommunicationBtn = document.getElementById('start-communication-btn');
+            const stopCommunicationBtn = document.getElementById('stop-communication-btn');
+            const generatePostBtn = document.getElementById('generate-post-btn');
+            const postNowBtn = document.getElementById('post-now-btn');
+            
+            // Conteneurs
+            const strategyContent = document.getElementById('strategy-content');
+            const calendarContent = document.getElementById('calendar-content');
+            const postsTimeline = document.getElementById('posts-timeline');
+            const generatedPostCard = document.getElementById('generated-post-card');
+            const generatedPostContent = document.getElementById('generated-post-content');
+            
+            // État de l'application
+            let projectInfo = {};
+            let generatedContent = null;
+            
+            // Fonction pour ajouter un log
+            function addLog(type, message) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-${type}`;
+                logEntry.textContent = message;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Formatage des dates
+            function formatDateTime(dateTimeStr) {
+                const date = new Date(dateTimeStr);
+                return date.toLocaleString('fr-FR', {
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+            
+            // Création d'un élément de chronologie
+            function createTimelineItem(post) {
+                const timelineItem = document.createElement('div');
+                timelineItem.className = 'timeline-item';
+                
+                const timelineContent = document.createElement('div');
+                timelineContent.className = 'timeline-content';
+                
+                // Date et plateforme
+                const timelineHeader = document.createElement('div');
+                timelineHeader.className = 'd-flex justify-content-between align-items-center';
+                
+                const timelineDate = document.createElement('div');
+                timelineDate.className = 'timeline-date';
+                timelineDate.textContent = formatDateTime(post.scheduled_time);
+                
+                const platformBadge = document.createElement('span');
+                platformBadge.className = `platform-badge platform-${post.platform.toLowerCase()}`;
+                platformBadge.textContent = post.platform;
+                
+                timelineHeader.appendChild(timelineDate);
+                timelineHeader.appendChild(platformBadge);
+                
+                // Type de contenu
+                const contentType = document.createElement('div');
+                contentType.className = 'small text-muted';
+                contentType.textContent = `Type: ${post.content_type}`;
+                
+                // Contenu du post (si disponible)
+                let postContentElement = null;
+                if (post.post_data) {
+                    postContentElement = document.createElement('div');
+                    postContentElement.className = 'post-content';
+                    
+                    const contentPara = document.createElement('p');
+                    contentPara.textContent = post.post_data.content;
+                    postContentElement.appendChild(contentPara);
+                    
+                    if (post.post_data.hashtags && post.post_data.hashtags.length > 0) {
+                        const hashtagsDiv = document.createElement('div');
+                        hashtagsDiv.className = 'post-hashtags';
+                        hashtagsDiv.textContent = post.post_data.hashtags.join(' ');
+                        postContentElement.appendChild(hashtagsDiv);
+                    }
+                }
+                
+                // Statut (traité ou non)
+                const statusBadge = document.createElement('span');
+                statusBadge.className = `badge ${post.processed ? 'bg-success' : 'bg-warning text-dark'}`;
+                statusBadge.textContent = post.processed ? 'Publié' : 'En attente';
+                
+                // Assemblage de l'élément
+                timelineContent.appendChild(timelineHeader);
+                timelineContent.appendChild(contentType);
+                if (postContentElement) {
+                    timelineContent.appendChild(postContentElement);
+                }
+                timelineContent.appendChild(document.createElement('hr'));
+                timelineContent.appendChild(statusBadge);
+                
+                timelineItem.appendChild(timelineContent);
+                return timelineItem;
+            }
+            
+            // Mise à jour de la chronologie des posts
+            function updatePostsTimeline(scheduledPosts) {
+                postsTimeline.innerHTML = '';
+                
+                if (!scheduledPosts || scheduledPosts.length === 0) {
+                    const emptyMessage = document.createElement('p');
+                    emptyMessage.className = 'text-muted';
+                    emptyMessage.textContent = 'Aucune publication planifiée pour le moment.';
+                    postsTimeline.appendChild(emptyMessage);
+                    return;
+                }
+                
+                // Trier les posts par date
+                scheduledPosts.sort((a, b) => {
+                    return new Date(a.scheduled_time) - new Date(b.scheduled_time);
+                });
+                
+                // Créer un élément pour chaque post
+                scheduledPosts.forEach(post => {
+                    const timelineItem = createTimelineItem(post);
+                    postsTimeline.appendChild(timelineItem);
+                });
+            }
+            
+            // Mise à jour de l'affichage de la stratégie
+            function displayStrategy(strategy) {
+                strategyContent.innerHTML = '';
+                
+                // Aperçu de la stratégie
+                const overviewCard = document.createElement('div');
+                overviewCard.className = 'card mb-3';
+                overviewCard.innerHTML = `
+                    <div class="card-body">
+                        <h5 class="card-title">Aperçu de la stratégie</h5>
+                        <p>${strategy.strategy_overview || 'Aucun aperçu disponible'}</p>
+                    </div>
+                `;
+                strategyContent.appendChild(overviewCard);
+                
+                // Public cible
+                if (strategy.target_audience && strategy.target_audience.length > 0) {
+                    const audienceCard = document.createElement('div');
+                    audienceCard.className = 'card mb-3';
+                    
+                    let audienceHtml = `
+                        <div class="card-body">
+                            <h5 class="card-title">Public cible</h5>
+                            <ul>
+                    `;
+                    
+                    strategy.target_audience.forEach(audience => {
+                        audienceHtml += `<li>${audience}</li>`;
+                    });
+                    
+                    audienceHtml += `
+                            </ul>
+                        </div>
+                    `;
+                    
+                    audienceCard.innerHTML = audienceHtml;
+                    strategyContent.appendChild(audienceCard);
+                }
+                
+                // Ton et voix
+                if (strategy.tone_and_voice) {
+                    const toneCard = document.createElement('div');
+                    toneCard.className = 'card mb-3';
+                    toneCard.innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">Ton et voix</h5>
+                            <p>${strategy.tone_and_voice}</p>
+                        </div>
+                    `;
+                    strategyContent.appendChild(toneCard);
+                }
+                
+                // Messages clés
+                if (strategy.key_messages && strategy.key_messages.length > 0) {
+                    const messagesCard = document.createElement('div');
+                    messagesCard.className = 'card mb-3';
+                    
+                    let messagesHtml = `
+                        <div class="card-body">
+                            <h5 class="card-title">Messages clés</h5>
+                            <ul>
+                    `;
+                    
+                    strategy.key_messages.forEach(message => {
+                        messagesHtml += `<li>${message}</li>`;
+                    });
+                    
+                    messagesHtml += `
+                            </ul>
+                        </div>
+                    `;
+                    
+                    messagesCard.innerHTML = messagesHtml;
+                    strategyContent.appendChild(messagesCard);
+                }
+                
+                // Plateformes
+                if (strategy.platforms && strategy.platforms.length > 0) {
+                    const platformsCard = document.createElement('div');
+                    platformsCard.className = 'card mb-3';
+                    
+                    let platformsHtml = `
+                        <div class="card-body">
+                            <h5 class="card-title">Plateformes</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Plateforme</th>
+                                            <th>Pertinence</th>
+                                            <th>Fréquence</th>
+                                            <th>Types de contenu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                    `;
+                    
+                    strategy.platforms.forEach(platform => {
+                        platformsHtml += `
+                            <tr>
+                                <td>${platform.name}</td>
+                                <td>${platform.relevance}/100</td>
+                                <td>${platform.frequency}</td>
+                                <td>${platform.content_types ? platform.content_types.join(', ') : '-'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    platformsHtml += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    
+                    platformsCard.innerHTML = platformsHtml;
+                    strategyContent.appendChild(platformsCard);
+                }
+                
+                // Hashtags
+                if (strategy.hashtags && strategy.hashtags.length > 0) {
+                    const hashtagsCard = document.createElement('div');
+                    hashtagsCard.className = 'card mb-3';
+                    hashtagsCard.innerHTML = `
+                        <div class="card-body">
+                            <h5 class="card-title">Hashtags recommandés</h5>
+                            <p>${strategy.hashtags.join(' ')}</p>
+                        </div>
+                    `;
+                    strategyContent.appendChild(hashtagsCard);
+                }
+            }
+            
+            // Mise à jour de l'affichage du calendrier
+            function displayCalendar(strategy) {
+                calendarContent.innerHTML = '';
+                
+                if (!strategy.content_calendar || strategy.content_calendar.length === 0) {
+                    calendarContent.innerHTML = '<p class="text-muted">Aucun calendrier éditorial disponible.</p>';
+                    return;
+                }
+                
+                const calendarCard = document.createElement('div');
+                calendarCard.className = 'card';
+                
+                let calendarHtml = `
+                    <div class="card-body">
+                        <div class="accordion" id="calendarAccordion">
+                `;
+                
+                strategy.content_calendar.forEach((week, index) => {
+                    calendarHtml += `
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="week${index}Heading">
+                                <button class="accordion-button ${index === 0 ? '' : 'collapsed'}" type="button" data-bs-toggle="collapse" data-bs-target="#week${index}Collapse" aria-expanded="${index === 0 ? 'true' : 'false'}" aria-controls="week${index}Collapse">
+                                    Semaine ${week.week}: ${week.theme || 'Sans thème'}
+                                </button>
+                            </h2>
+                            <div id="week${index}Collapse" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" aria-labelledby="week${index}Heading" data-bs-parent="#calendarAccordion">
+                                <div class="accordion-body">
+                    `;
+                    
+                    if (week.posts && week.posts.length > 0) {
+                        calendarHtml += `
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Plateforme</th>
+                                            <th>Type de contenu</th>
+                                            <th>Publication suggérée</th>
+                                            <th>Heure idéale</th>
+                                            <th>Hashtags</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+                        
+                        week.posts.forEach(post => {
+                            calendarHtml += `
+                                <tr>
+                                    <td>${post.platform}</td>
+                                    <td>${post.content_type}</td>
+                                    <td>${post.suggested_content}</td>
+                                    <td>${post.ideal_posting_time}</td>
+                                    <td>${post.hashtags ? post.hashtags.join(' ') : '-'}</td>
+                                </tr>
+                            `;
+                        });
+                        
+                        calendarHtml += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        calendarHtml += '<p class="text-muted">Aucune publication prévue pour cette semaine.</p>';
+                    }
+                    
+                    calendarHtml += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                calendarHtml += `
+                        </div>
+                    </div>
+                `;
+                
+                calendarCard.innerHTML = calendarHtml;
+                calendarContent.appendChild(calendarCard);
+            }
+            
+            // Afficher le contenu généré
+            function displayGeneratedPost(content) {
+                generatedPostCard.style.display = 'block';
+                generatedPostContent.innerHTML = '';
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'mb-3';
+                contentDiv.innerHTML = `
+                    <h6>Contenu:</h6>
+                    <div class="post-content">${content.content}</div>
+                `;
+                
+                const hashtagsDiv = document.createElement('div');
+                hashtagsDiv.className = 'mb-3';
+                hashtagsDiv.innerHTML = `
+                    <h6>Hashtags:</h6>
+                    <div class="post-hashtags">${content.hashtags ? content.hashtags.join(' ') : 'Aucun hashtag'}</div>
+                `;
+                
+                const mediaDiv = document.createElement('div');
+                mediaDiv.className = 'mb-3';
+                mediaDiv.innerHTML = `
+                    <h6>Suggestion de média:</h6>
+                    <div>${content.media_suggestion || 'Aucune suggestion de média'}</div>
+                `;
+                
+                const ctaDiv = document.createElement('div');
+                ctaDiv.className = 'mb-3';
+                ctaDiv.innerHTML = `
+                    <h6>Call to action:</h6>
+                    <div>${content.call_to_action || 'Aucun call to action'}</div>
+                `;
+                
+                generatedPostContent.appendChild(contentDiv);
+                generatedPostContent.appendChild(hashtagsDiv);
+                generatedPostContent.appendChild(mediaDiv);
+                generatedPostContent.appendChild(ctaDiv);
+                
+                // Activer le bouton de publication
+                postNowBtn.disabled = false;
+            }
+            
+            // Fonction pour récupérer les informations du projet depuis le formulaire
+            function getProjectInfo() {
+                const projectName = document.getElementById('project-name').value || 'Mon Projet';
+                const projectDescription = document.getElementById('project-description').value || '';
+                
+                // Déterminer les réseaux sociaux sélectionnés
+                const selectedPlatforms = [];
+                if (document.getElementById('twitter-checkbox').checked) selectedPlatforms.push('Twitter');
+                if (document.getElementById('linkedin-checkbox').checked) selectedPlatforms.push('LinkedIn');
+                if (document.getElementById('instagram-checkbox').checked) selectedPlatforms.push('Instagram');
+                
+                return {
+                    project_name: projectName,
+                    description: projectDescription,
+                    selected_platforms: selectedPlatforms
+                };
+            }
+            
+            // Événements des boutons
+            createStrategyBtn.addEventListener('click', function() {
+                const projInfo = getProjectInfo();
+                
+                if (!projInfo.description) {
+                    addLog('error', 'Veuillez fournir une description du projet');
+                    return;
+                }
+                
+                addLog('info', 'Création de la stratégie de communication...');
+                loading.style.display = 'block';
+                
+                fetch('/communication_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_info: projInfo,
+                        action: 'create_strategy'
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Stratégie de communication créée`);
+                        projectInfo = data.project_info;
+                        
+                        // Afficher la stratégie
+                        displayStrategy(data.communication_strategy);
+                        
+                        // Activer l'onglet de stratégie
+                        document.getElementById('strategy-tab').click();
+                    }
+                    loading.style.display = 'none';
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    loading.style.display = 'none';
+                });
+            });
+            
+            schedulePostsBtn.addEventListener('click', function() {
+                if (!projectInfo.communication_strategy) {
+                    addLog('warning', 'Veuillez d\'abord créer une stratégie de communication');
+                    return;
+                }
+                
+                addLog('info', 'Planification des publications...');
+                loading.style.display = 'block';
+                
+                fetch('/communication_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_info: projectInfo,
+                        action: 'schedule_posts'
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Publications planifiées`);
+                        projectInfo = data.project_info;
+                        
+                        // Afficher le calendrier
+                        displayCalendar(projectInfo.communication_strategy);
+                        
+                        // Mettre à jour la chronologie des posts
+                        updatePostsTimeline(data.scheduled_posts);
+                        
+                        // Activer l'onglet de calendrier
+                        document.getElementById('calendar-tab').click();
+                    }
+                    loading.style.display = 'none';
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    loading.style.display = 'none';
+                });
+            });
+            
+            startCommunicationBtn.addEventListener('click', function() {
+                if (!projectInfo.communication_strategy) {
+                    addLog('warning', 'Veuillez d\'abord créer une stratégie de communication');
+                    return;
+                }
+                
+                addLog('info', 'Démarrage du thread de communication...');
+                
+                fetch('/communication_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_info: projectInfo,
+                        action: 'start_communication'
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Thread de communication démarré`);
+                    }
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                });
+            });
+            
+            stopCommunicationBtn.addEventListener('click', function() {
+                addLog('info', 'Arrêt du thread de communication...');
+                
+                fetch('/communication_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'stop_communication'
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Thread de communication arrêté`);
+                    }
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                });
+            });
+            
+            generatePostBtn.addEventListener('click', function() {
+                if (!projectInfo.communication_strategy) {
+                    addLog('warning', 'Veuillez d\'abord créer une stratégie de communication');
+                    return;
+                }
+                
+                const platform = document.getElementById('platform-select').value;
+                const contentType = document.getElementById('content-type-select').value;
+                const specialEvent = document.getElementById('special-event').value;
+                
+                addLog('info', `Génération de contenu pour ${platform}...`);
+                loading.style.display = 'block';
+                
+                fetch('/communication_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_info: projectInfo,
+                        action: 'generate_post',
+                        platform: platform,
+                        content_type: contentType,
+                        special_event: specialEvent || null
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Contenu généré pour ${platform}`);
+                        generatedContent = data.content_data;
+                        
+                        // Afficher le contenu généré
+                        displayGeneratedPost(data.content_data);
+                    }
+                    loading.style.display = 'none';
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    loading.style.display = 'none';
+                });
+            });
+            
+            postNowBtn.addEventListener('click', function() {
+                if (!generatedContent) {
+                    addLog('warning', 'Veuillez d\'abord générer du contenu');
+                    return;
+                }
+                
+                const platform = document.getElementById('platform-select').value;
+                
+                addLog('info', `Publication sur ${platform}...`);
+                
+                fetch('/communication_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'post_now',
+                        platform: platform,
+                        content_data: generatedContent
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Publication réussie sur ${platform}`);
+                        
+                        // Désactiver le bouton de publication
+                        postNowBtn.disabled = true;
+                        
+                        // Réinitialiser le formulaire
+                        document.getElementById('special-event').value = '';
+                        generatedPostCard.style.display = 'none';
+                        generatedContent = null;
+                    }
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                });
+            });
+            
+            // Écouter les événements de log du serveur
+            socket.on('log', function(data) {
+                addLog(data.type, data.message);
+            });
+            
+            // Écouter l'événement de début de chargement
+            socket.on('loading_start', function() {
+                loading.style.display = 'block';
+            });
+            
+            // Écouter l'événement de fin de chargement
+            socket.on('loading_end', function() {
+                loading.style.display = 'none';
+            });
+            
+            // Écouter la mise à jour des publications planifiées
+            socket.on('scheduled_posts_update', function(data) {
+                updatePostsTimeline(data.scheduled_posts);
+                document.getElementById('posts-tab').click();
+            });
+            
+            // Récupérer les publications planifiées au chargement de la page
+            fetch('/get_scheduled_posts')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success' && data.scheduled_posts.length > 0) {
+                        updatePostsTimeline(data.scheduled_posts);
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la récupération des publications planifiées:', error);
+                });
+        });
+    </script>
+</body>
+</html>
