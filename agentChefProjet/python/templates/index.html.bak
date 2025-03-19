@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Chef de Projet IA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/java.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/json.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f7f9fc;
+        }
+        
+        .container-fluid {
+            max-width: 1400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Courier New', Courier, monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .section-container {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        
+        .log-container {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-info {
+            color: #0c5460;
+        }
+        
+        .log-error {
+            color: #721c24;
+        }
+        
+        .log-success {
+            color: #155724;
+        }
+        
+        .log-warning {
+            color: #856404;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.9em;
+        }
+        
+        .btn-primary {
+            background-color: #4a6bdf;
+            border-color: #4a6bdf;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3952b3;
+            border-color: #3952b3;
+        }
+        
+        .workflow-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .workflow-step {
+            flex: 0 0 200px;
+            text-align: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            position: relative;
+            margin: 0 10px;
+        }
+        
+        .workflow-step.active {
+            background-color: #e2f0d9;
+            border-color: #c6e0b4;
+        }
+        
+        .workflow-step.completed {
+            background-color: #d9ead3;
+            border-color: #b6d7a8;
+        }
+        
+        .workflow-step:not(:last-child)::after {
+            content: "→";
+            position: absolute;
+            right: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            color: #555;
+        }
+        
+        .workflow-step h5 {
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .workflow-step p {
+            margin-bottom: 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .tab-content {
+            margin-top: 20px;
+        }
+        
+        .json-viewer {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .code-viewer {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="header">
+            <h1>Agent Chef de Projet IA</h1>
+            <p class="lead">Orchestration de projet avec agents IA pour le développement et l'assurance qualité</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-section">
+                    <form id="projectRequestForm">
+                        <div class="form-group">
+                            <label for="project-description">Description du Projet:</label>
+                            <textarea class="form-control" id="project-description" rows="8" placeholder="Décrivez en détail le projet et vos attentes..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="app-url">URL de l'Application à Tester (optionnel):</label>
+                            <input type="text" class="form-control" id="app-url" placeholder="https://exemple.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-name">Nom du Projet (pour Go):</label>
+                            <input type="text" class="form-control" id="project-name" placeholder="Nom du projet Go">
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-dev">
+                            <label class="form-check-label" for="launch-dev">
+                                Lancer l'agent développeur backend standard
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-go" checked>
+                            <label class="form-check-label" for="launch-go">
+                                Lancer l'agent développeur Go backend
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-frontend">
+                            <label class="form-check-label" for="launch-frontend">
+                                Lancer l'agent développeur frontend
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3 ms-4" id="cursor-option" style="display: none;">
+                            <input class="form-check-input" type="checkbox" id="open-cursor">
+                            <label class="form-check-label" for="open-cursor">
+                                Ouvrir avec Cursor
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-qa">
+                            <label class="form-check-label" for="launch-qa">
+                                Lancer l'agent QA (nécessite une URL)
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" id="submit-button">Lancer le Projet</button>
+                    </form>
+                </div>
+                
+                <div class="log-section mt-4">
+                    <h4>Logs:</h4>
+                    <div class="log-container" id="log-container"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="workflow-container">
+                    <div class="workflow-step" id="step-specs">
+                        <h5>Spécifications</h5>
+                        <p>Extraction des spécifications du projet</p>
+                    </div>
+                    <div class="workflow-step" id="step-tasks">
+                        <h5>Tâches</h5>
+                        <p>Création des tâches de développement</p>
+                    </div>
+                    <div class="workflow-step" id="step-test-plan">
+                        <h5>Plan de Test</h5>
+                        <p>Élaboration du plan de test</p>
+                    </div>
+                    <div class="workflow-step" id="step-dev">
+                        <h5>Développement</h5>
+                        <p>Implémentation du code</p>
+                    </div>
+                    <div class="workflow-step" id="step-qa">
+                        <h5>Assurance Qualité</h5>
+                        <p>Tests d'acceptation</p>
+                    </div>
+                </div>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p>Traitement en cours, veuillez patienter...</p>
+                </div>
+                
+                <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="specifications-tab" data-bs-toggle="tab" data-bs-target="#specifications" type="button" role="tab" aria-controls="specifications" aria-selected="true">Spécifications</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab" aria-controls="tasks" aria-selected="false">Tâches</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="test-plan-tab" data-bs-toggle="tab" data-bs-target="#test-plan" type="button" role="tab" aria-controls="test-plan" aria-selected="false">Plan de Test</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="dev-response-tab" data-bs-toggle="tab" data-bs-target="#dev-response" type="button" role="tab" aria-controls="dev-response" aria-selected="false">Code Backend</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="go-response-tab" data-bs-toggle="tab" data-bs-target="#go-response" type="button" role="tab" aria-controls="go-response" aria-selected="false">Code Go</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="frontend-response-tab" data-bs-toggle="tab" data-bs-target="#frontend-response" type="button" role="tab" aria-controls="frontend-response" aria-selected="false">Code Frontend</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="qa-response-tab" data-bs-toggle="tab" data-bs-target="#qa-response" type="button" role="tab" aria-controls="qa-response" aria-selected="false">Résultats QA</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="resultTabsContent">
+                    <div class="tab-pane fade show active" id="specifications" role="tabpanel" aria-labelledby="specifications-tab">
+                        <div class="json-viewer" id="specifications-content">
+                            <p class="text-muted">Les spécifications du projet s'afficheront ici...</p>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="tasks" role="tabpanel" aria-labelledby="tasks-tab">
+                        <div class="json-viewer" id="tasks-content">
+                            <p class="text-muted">Les tâches de développement s'afficheront ici...</p>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="test-plan" role="tabpanel" aria-labelledby="test-plan-tab">
+                        <div class="json-viewer" id="test-plan-content">
+                            <p class="text-muted">Le plan de test s'affichera ici...</p>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="dev-response" role="tabpanel" aria-labelledby="dev-response-tab">
+                        <div class="code-viewer" id="dev-response-content">
+                            <p class="text-muted">Le code backend généré s'affichera ici...</p>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="go-response" role="tabpanel" aria-labelledby="go-response-tab">
+                        <div class="code-viewer" id="go-response-content">
+                            <p class="text-muted">Le code Go généré s'affichera ici...</p>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="frontend-response" role="tabpanel" aria-labelledby="frontend-response-tab">
+                        <div class="code-viewer" id="frontend-response-content">
+                            <p class="text-muted">Le code frontend généré s'affichera ici...</p>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="qa-response" role="tabpanel" aria-labelledby="qa-response-tab">
+                        <div class="code-viewer" id="qa-response-content">
+                            <p class="text-muted">Les résultats des tests QA s'afficheront ici...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+            const logContainer = document.getElementById('log-container');
+            const loading = document.getElementById('loading');
+            const form = document.getElementById('projectRequestForm');
+            const submitButton = document.getElementById('submit-button');
+            
+            // Référence aux conteneurs de contenu
+            const specContent = document.getElementById('specifications-content');
+            const tasksContent = document.getElementById('tasks-content');
+            const testPlanContent = document.getElementById('test-plan-content');
+            const devResponseContent = document.getElementById('dev-response-content');
+            const qaResponseContent = document.getElementById('qa-response-content');
+            
+            // Référence aux étapes du workflow
+            const stepSpecs = document.getElementById('step-specs');
+            const stepTasks = document.getElementById('step-tasks');
+            const stepTestPlan = document.getElementById('step-test-plan');
+            const stepDev = document.getElementById('step-dev');
+            const stepQA = document.getElementById('step-qa');
+            
+            // Référence aux onglets
+            const tabSpecifications = document.getElementById('specifications-tab');
+            const tabTasks = document.getElementById('tasks-tab');
+            const tabTestPlan = document.getElementById('test-plan-tab');
+            const tabDevResponse = document.getElementById('dev-response-tab');
+            const tabGoResponse = document.getElementById('go-response-tab');
+            const tabFrontendResponse = document.getElementById('frontend-response-tab');
+            const tabQaResponse = document.getElementById('qa-response-tab');
+            
+            // Gestion de l'affichage de l'option Cursor
+            document.getElementById('launch-frontend').addEventListener('change', function() {
+                document.getElementById('cursor-option').style.display = this.checked ? 'block' : 'none';
+            });
+            
+            // Fonction pour ajouter un log
+            function addLog(type, message) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-${type}`;
+                logEntry.textContent = message;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Formatage JSON avec coloration syntaxique
+            function formatJSON(json) {
+                const formattedJSON = JSON.stringify(json, null, 2);
+                return `<pre><code class="language-json">${formattedJSON}</code></pre>`;
+            }
+            
+            // Activation des onglets Bootstrap
+            function activateTab(tabElement) {
+                const tab = new bootstrap.Tab(tabElement);
+                tab.show();
+            }
+            
+            // Écouter les événements de log du serveur
+            socket.on('log', function(data) {
+                addLog(data.type, data.message);
+            });
+            
+            // Écouter l'événement de début de chargement
+            socket.on('loading_start', function() {
+                loading.style.display = 'block';
+                submitButton.disabled = true;
+            });
+            
+            // Écouter l'événement de fin de chargement
+            socket.on('loading_end', function() {
+                loading.style.display = 'none';
+                submitButton.disabled = false;
+            });
+            
+            // Mise à jour des spécifications
+            socket.on('specifications_update', function(data) {
+                specContent.innerHTML = formatJSON(data.specifications);
+                stepSpecs.classList.add('completed');
+                stepTasks.classList.add('active');
+                activateTab(tabSpecifications);
+                hljs.highlightAll();
+            });
+            
+            // Mise à jour des tâches
+            socket.on('tasks_update', function(data) {
+                tasksContent.innerHTML = formatJSON(data.tasks);
+                stepTasks.classList.remove('active');
+                stepTasks.classList.add('completed');
+                stepTestPlan.classList.add('active');
+                activateTab(tabTasks);
+                hljs.highlightAll();
+            });
+            
+            // Mise à jour du plan de test
+            socket.on('test_plan_update', function(data) {
+                testPlanContent.innerHTML = formatJSON(data.test_plan);
+                stepTestPlan.classList.remove('active');
+                stepTestPlan.classList.add('completed');
+                
+                if (document.getElementById('launch-dev').checked) {
+                    stepDev.classList.add('active');
+                } else if (document.getElementById('launch-qa').checked) {
+                    stepQA.classList.add('active');
+                }
+                
+                activateTab(tabTestPlan);
+                hljs.highlightAll();
+            });
+            
+            // Mise à jour de la réponse du développeur backend
+            socket.on('dev_response_update', function(data) {
+                if (data.dev_response.full_response) {
+                    devResponseContent.innerHTML = `<div class="mb-4">${marked.parse(data.dev_response.full_response)}</div>`;
+                } else {
+                    devResponseContent.innerHTML = formatJSON(data.dev_response);
+                }
+                
+                stepDev.classList.remove('active');
+                stepDev.classList.add('completed');
+                
+                if (document.getElementById('launch-frontend').checked) {
+                    // L'étape suivante est le développeur frontend
+                } else if (document.getElementById('launch-qa').checked) {
+                    stepQA.classList.add('active');
+                }
+                
+                activateTab(tabDevResponse);
+                
+                document.querySelectorAll('#dev-response-content pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            });
+            
+            // Mise à jour de la réponse du développeur frontend
+            socket.on('frontend_response_update', function(data) {
+                const frontendResponseContent = document.getElementById('frontend-response-content');
+                
+                if (data.frontend_response.files) {
+                    let filesHtml = '<div class="mb-4"><h4>Fichiers générés:</h4><ul>';
+                    data.frontend_response.files.forEach(file => {
+                        filesHtml += `<li><strong>${file.file_path}</strong></li>`;
+                    });
+                    filesHtml += '</ul></div>';
+                    
+                    filesHtml += `<div class="mb-4"><h4>Répertoire du projet:</h4>
+                        <p><code>${data.frontend_response.project_dir}</code></p></div>`;
+                    
+                    if (data.frontend_response.cursor_opened) {
+                        filesHtml += '<div class="alert alert-success">Projet ouvert avec Cursor</div>';
+                    }
+                    
+                    // Afficher le contenu d'un maximum de 5 fichiers
+                    const filesToShow = data.frontend_response.files.slice(0, 5);
+                    
+                    filesHtml += '<div class="mb-4"><h4>Aperçu des fichiers:</h4>';
+                    filesToShow.forEach(file => {
+                        const extension = file.file_path.split('.').pop();
+                        let language = '';
+                        
+                        switch (extension) {
+                            case 'js':
+                            case 'jsx':
+                                language = 'javascript';
+                                break;
+                            case 'css':
+                                language = 'css';
+                                break;
+                            case 'html':
+                                language = 'html';
+                                break;
+                            case 'json':
+                                language = 'json';
+                                break;
+                        }
+                        
+                        filesHtml += `<div class="card mb-3">
+                            <div class="card-header">${file.file_path}</div>
+                            <div class="card-body p-0">
+                                <pre><code class="language-${language}">${file.content}</code></pre>
+                            </div>
+                        </div>`;
+                    });
+                    
+                    filesHtml += '</div>';
+                    
+                    frontendResponseContent.innerHTML = filesHtml;
+                } else {
+                    frontendResponseContent.innerHTML = formatJSON(data.frontend_response);
+                }
+                
+                if (document.getElementById('launch-qa').checked) {
+                    stepQA.classList.add('active');
+                }
+                
+                activateTab(tabFrontendResponse);
+                
+                document.querySelectorAll('#frontend-response-content pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            });
+            
+            // Mise à jour de la réponse QA
+            socket.on('qa_response_update', function(data) {
+                if (data.qa_response.response) {
+                    qaResponseContent.innerHTML = `<div class="mb-4">${marked.parse(data.qa_response.response)}</div>`;
+                } else {
+                    qaResponseContent.innerHTML = formatJSON(data.qa_response);
+                }
+                
+                stepQA.classList.remove('active');
+                stepQA.classList.add('completed');
+                
+                activateTab(tabQaResponse);
+                
+                document.querySelectorAll('#qa-response-content pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            });
+            
+            // Projet complet
+            socket.on('project_complete', function() {
+                addLog('success', 'Projet traité avec succès!');
+                submitButton.disabled = false;
+            });
+            
+            // Attente de confirmation utilisateur
+            socket.on('wait_for_user_action', function() {
+                const confirmButton = document.createElement('button');
+                confirmButton.className = 'btn btn-success mt-2';
+                confirmButton.textContent = 'Continuer';
+                confirmButton.onclick = function() {
+                    socket.emit('user_action_done');
+                    confirmButton.remove();
+                };
+                logContainer.appendChild(confirmButton);
+            });
+            
+            // Validation de l'URL
+            document.getElementById('launch-qa').addEventListener('change', function() {
+                if (this.checked) {
+                    const appUrl = document.getElementById('app-url').value;
+                    if (!appUrl) {
+                        addLog('warning', 'Une URL est requise pour lancer l\'agent QA');
+                        document.getElementById('app-url').focus();
+                    }
+                }
+            });
+            
+            // Gestionnaire pour la réponse de l'agent Go backend
+            socket.on('go_response_update', function(data) {
+                const goResponseContent = document.getElementById('go-response-content');
+                
+                if (data.go_response.generated_code && data.go_response.generated_code.files) {
+                    const files = data.go_response.generated_code.files;
+                    const projectDir = data.go_response.project_dir;
+                    
+                    // Créer un aperçu des fichiers Go
+                    let goFilesHtml = `<div class="mb-4">
+                        <h4>Projet Go créé dans: ${projectDir}</h4>
+                        <p>Nombre de fichiers: ${files.length}</p>
+                    </div>`;
+                    
+                    goFilesHtml += '<div class="files-list">';
+                    
+                    files.forEach(file => {
+                        goFilesHtml += `<div class="card mb-3">
+                            <div class="card-header d-flex justify-content-between">
+                                <span>${file.file_path}</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <pre><code class="language-go">${file.content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>
+                            </div>
+                        </div>`;
+                    });
+                    
+                    goFilesHtml += '</div>';
+                    
+                    goResponseContent.innerHTML = goFilesHtml;
+                } else {
+                    goResponseContent.innerHTML = formatJSON(data.go_response);
+                }
+                
+                stepDev.classList.remove('active');
+                stepDev.classList.add('completed');
+                
+                if (document.getElementById('launch-frontend').checked) {
+                    // L'étape suivante est le développeur frontend
+                } else if (document.getElementById('launch-qa').checked) {
+                    stepQA.classList.add('active');
+                }
+                
+                activateTab(tabGoResponse);
+                
+                document.querySelectorAll('#go-response-content pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            });
+            
+            // Soumission du formulaire
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const projectDescription = document.getElementById('project-description').value;
+                const appUrl = document.getElementById('app-url').value;
+                const projectName = document.getElementById('project-name').value || 'go-project';
+                const launchDev = document.getElementById('launch-dev').checked;
+                const launchGo = document.getElementById('launch-go').checked;
+                const launchFrontend = document.getElementById('launch-frontend').checked;
+                const openCursor = document.getElementById('open-cursor').checked;
+                const launchQA = document.getElementById('launch-qa').checked;
+                
+                if (!projectDescription) {
+                    addLog('error', 'Veuillez remplir la description du projet');
+                    return;
+                }
+                
+                if (launchQA && !appUrl) {
+                    addLog('error', 'Une URL est requise pour lancer l\'agent QA');
+                    return;
+                }
+                
+                // Réinitialiser l'interface
+                logContainer.innerHTML = '';
+                specContent.innerHTML = '<p class="text-muted">Les spécifications du projet s\'afficheront ici...</p>';
+                tasksContent.innerHTML = '<p class="text-muted">Les tâches de développement s\'afficheront ici...</p>';
+                testPlanContent.innerHTML = '<p class="text-muted">Le plan de test s\'affichera ici...</p>';
+                devResponseContent.innerHTML = '<p class="text-muted">Le code backend généré s\'affichera ici...</p>';
+                document.getElementById('frontend-response-content').innerHTML = '<p class="text-muted">Le code frontend généré s\'affichera ici...</p>';
+                qaResponseContent.innerHTML = '<p class="text-muted">Les résultats des tests QA s\'afficheront ici...</p>';
+                
+                // Réinitialiser le workflow
+                stepSpecs.classList.remove('active', 'completed');
+                stepTasks.classList.remove('active', 'completed');
+                stepTestPlan.classList.remove('active', 'completed');
+                stepDev.classList.remove('active', 'completed');
+                stepQA.classList.remove('active', 'completed');
+                
+                // Activer la première étape
+                stepSpecs.classList.add('active');
+                
+                // Envoyer la requête au serveur
+                submitButton.disabled = true;
+                addLog('info', 'Lancement du projet...');
+                
+                fetch('/project_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        description: projectDescription,
+                        app_url: appUrl,
+                        project_name: projectName,
+                        launch_dev: launchDev,
+                        launch_go: launchGo,
+                        launch_frontend: launchFrontend,
+                        open_cursor: openCursor,
+                        launch_qa: launchQA
+                    }),
+                })
+                .then(response => response.json())
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    console.error('Erreur:', error);
+                    submitButton.disabled = false;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

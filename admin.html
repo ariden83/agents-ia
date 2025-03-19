@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panneau d'Administration des Agents IA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f7f9fc;
+        }
+        
+        .container {
+            max-width: 1200px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .agent-card {
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .agent-card .card-header {
+            font-weight: 600;
+        }
+        
+        .agent-card.stopped .card-header {
+            background-color: #f8d7da;
+        }
+        
+        .agent-card.running .card-header {
+            background-color: #d1e7dd;
+        }
+        
+        .agent-card.paused .card-header {
+            background-color: #fff3cd;
+        }
+        
+        .log-container {
+            height: 300px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-info {
+            color: #0c5460;
+        }
+        
+        .log-error {
+            color: #721c24;
+        }
+        
+        .log-success {
+            color: #155724;
+        }
+        
+        .log-warning {
+            color: #856404;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .status-running {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+        
+        .status-stopped {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+        
+        .status-paused {
+            background-color: #fff3cd;
+            color: #664d03;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .action-buttons .btn {
+            flex: 1;
+        }
+        
+        .agent-selection {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+        }
+        
+        .selector-title {
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .form-check {
+            margin-bottom: 8px;
+        }
+        
+        #query-form {
+            margin-top: 20px;
+        }
+        
+        .query-text {
+            min-height: 150px;
+        }
+        
+        /* Styles pour l'historique des prompts */
+        .prompts-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+        }
+        
+        .prompt-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .prompt-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .prompt-item:last-child {
+            border-bottom: none;
+        }
+        
+        .prompt-date {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+        
+        .prompt-text {
+            font-weight: 600;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .prompt-agents {
+            font-size: 0.8em;
+            color: #495057;
+        }
+        
+        .agent-tag {
+            display: inline-block;
+            background-color: #e9ecef;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-right: 3px;
+            margin-bottom: 3px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Panneau d'Administration des Agents IA</h1>
+            <p class="lead">Contrôlez et gérez tous les agents de votre système</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3>Actions Globales</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="action-buttons">
+                            <button id="start-all-btn" class="btn btn-success">
+                                <i class="fas fa-play me-2"></i>Démarrer Tous les Agents
+                            </button>
+                            <button id="pause-all-btn" class="btn btn-warning">
+                                <i class="fas fa-pause me-2"></i>Mettre en Pause Tous les Agents
+                            </button>
+                            <button id="resume-all-btn" class="btn btn-info">
+                                <i class="fas fa-play-circle me-2"></i>Reprendre Tous les Agents
+                            </button>
+                            <button id="stop-all-btn" class="btn btn-danger">
+                                <i class="fas fa-stop me-2"></i>Arrêter Tous les Agents
+                            </button>
+                            <button id="refresh-status-btn" class="btn btn-secondary">
+                                <i class="fas fa-sync-alt me-2"></i>Actualiser l'État
+                            </button>
+                        </div>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" id="auto-refresh-toggle" checked>
+                            <label class="form-check-label" for="auto-refresh-toggle">
+                                Actualisation automatique <span id="refresh-countdown" class="badge bg-secondary ms-1">30s</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="row" id="agent-cards">
+                    <!-- Les cartes des agents seront générées dynamiquement ici -->
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h3>Dialogue avec les Agents</h3>
+                    </div>
+                    <div class="card-body">
+                        <!-- Panneau de restauration (caché par défaut) -->
+                        <div id="restore-panel" class="alert alert-info mb-4" style="display: none;">
+                            <h5><i class="fas fa-history me-2"></i>Session précédente détectée</h5>
+                            <p>Une ou plusieurs tâches étaient en cours lors de l'arrêt du système. Que souhaitez-vous faire?</p>
+                            <div class="d-flex mt-3">
+                                <button id="resume-tasks-btn" class="btn btn-success me-2">
+                                    <i class="fas fa-play-circle me-1"></i>Reprendre les tâches
+                                </button>
+                                <button id="clear-tasks-btn" class="btn btn-secondary">
+                                    <i class="fas fa-trash-alt me-1"></i>Ignorer et créer une nouvelle tâche
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="agent-selection">
+                            <div class="selector-title">Sélectionnez les agents à utiliser:</div>
+                            <div class="agent-checkboxes">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="chef-projet-check" checked>
+                                    <label class="form-check-label" for="chef-projet-check">
+                                        Agent Chef de Projet (obligatoire)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="devops-check">
+                                    <label class="form-check-label" for="devops-check">
+                                        Agent DevOps CI/CD
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="dev-python-check">
+                                    <label class="form-check-label" for="dev-python-check">
+                                        Agent Développeur Python
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="dev-frontend-check">
+                                    <label class="form-check-label" for="dev-frontend-check">
+                                        Agent Développeur Frontend
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="dev-go-check">
+                                    <label class="form-check-label" for="dev-go-check">
+                                        Agent Développeur Go Backend
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="dev-android-check">
+                                    <label class="form-check-label" for="dev-android-check">
+                                        Agent Développeur Android
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="dev-ios-check">
+                                    <label class="form-check-label" for="dev-ios-check">
+                                        Agent Développeur iOS
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="qa-check">
+                                    <label class="form-check-label" for="qa-check">
+                                        Agent QA
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="perf-check">
+                                    <label class="form-check-label" for="perf-check">
+                                        Agent Performance
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="analytics-check">
+                                    <label class="form-check-label" for="analytics-check">
+                                        Agent Analytics & Monitoring
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="communication-check">
+                                    <label class="form-check-label" for="communication-check">
+                                        Agent Communication & Social
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="ml-check">
+                                    <label class="form-check-label" for="ml-check">
+                                        Agent Machine Learning
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="product-owner-check">
+                                    <label class="form-check-label" for="product-owner-check">
+                                        Agent Product Owner
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="ux-designer-check">
+                                    <label class="form-check-label" for="ux-designer-check">
+                                        Agent UX Designer
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <form id="query-form">
+                            <div class="form-group">
+                                <label for="query-text">Votre demande:</label>
+                                <textarea class="form-control query-text" id="query-text" rows="4" placeholder="Décrivez votre projet ou votre demande..."></textarea>
+                            </div>
+                            <div class="form-group mt-3">
+                                <label for="app-url">URL de l'Application (pour tests QA/Performance):</label>
+                                <input type="text" class="form-control" id="app-url" placeholder="https://exemple.com">
+                            </div>
+                            <div class="form-group mt-3">
+                                <label for="project-name">Nom du Projet:</label>
+                                <input type="text" class="form-control" id="project-name" placeholder="mon-projet">
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-3">
+                                <i class="fas fa-paper-plane me-2"></i>Envoyer la Demande
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <ul class="nav nav-tabs" id="logTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="system-logs-tab" data-bs-toggle="tab" data-bs-target="#system-logs" 
+                                    type="button" role="tab" aria-controls="system-logs" aria-selected="true">
+                                Logs Système
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="prompts-history-tab" data-bs-toggle="tab" data-bs-target="#prompts-history" 
+                                    type="button" role="tab" aria-controls="prompts-history" aria-selected="false">
+                                Historique des Prompts <span id="prompts-count" class="badge bg-secondary ms-1">0</span>
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="logTabsContent">
+                        <div class="tab-pane fade show active" id="system-logs" role="tabpanel" aria-labelledby="system-logs-tab">
+                            <div class="log-container mt-2" id="log-container"></div>
+                        </div>
+                        <div class="tab-pane fade" id="prompts-history" role="tabpanel" aria-labelledby="prompts-history-tab">
+                            <div class="mt-2">
+                                <button id="refresh-history-btn" class="btn btn-sm btn-secondary mb-2">
+                                    <i class="fas fa-sync-alt me-1"></i>Actualiser l'historique
+                                </button>
+                                <div class="prompts-list" id="prompts-list">
+                                    <div class="text-center p-3 text-muted">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Chargement de l'historique...
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Configuration des agents
+        const agents = [
+            {
+                id: 'chef-projet',
+                name: 'Chef de Projet',
+                port: 5000,
+                description: 'Orchestre le projet et coordonne les autres agents',
+                icon: 'fa-user-tie'
+            },
+            {
+                id: 'devops',
+                name: 'DevOps CI/CD',
+                port: 5005,
+                description: 'Gère les configurations DevOps et pipelines CI/CD',
+                icon: 'fa-cogs'
+            },
+            {
+                id: 'dev-python',
+                name: 'Développeur Python',
+                port: 5001,
+                description: 'Génère le code backend en Python',
+                icon: 'fa-code'
+            },
+            {
+                id: 'dev-frontend',
+                name: 'Développeur Frontend',
+                port: 5003,
+                description: 'Génère le code frontend (React, Vue, etc.)',
+                icon: 'fa-laptop-code'
+            },
+            {
+                id: 'dev-go',
+                name: 'Développeur Go Backend',
+                port: 5004,
+                description: 'Génère le code backend en Go',
+                icon: 'fa-terminal'
+            },
+            {
+                id: 'dev-android',
+                name: 'Développeur Android',
+                port: 5007,
+                description: 'Génère le code pour applications Android',
+                icon: 'fa-mobile-alt'
+            },
+            {
+                id: 'dev-ios',
+                name: 'Développeur iOS',
+                port: 5008,
+                description: 'Génère le code pour applications iOS',
+                icon: 'fa-apple'
+            },
+            {
+                id: 'qa',
+                name: 'QA',
+                port: 5002,
+                description: 'Effectue des tests d\'assurance qualité',
+                icon: 'fa-vial'
+            },
+            {
+                id: 'perf',
+                name: 'Performance',
+                port: 5006,
+                description: 'Effectue des audits de performance',
+                icon: 'fa-tachometer-alt'
+            },
+            {
+                id: 'analytics',
+                name: 'Analytics & Monitoring',
+                port: 5009,
+                description: 'Analyse et surveille les performances du système',
+                icon: 'fa-chart-line'
+            },
+            {
+                id: 'communication',
+                name: 'Communication & Social',
+                port: 5010,
+                description: 'Gère la communication et les réseaux sociaux',
+                icon: 'fa-comments'
+            },
+            {
+                id: 'ml',
+                name: 'Machine Learning',
+                port: 5011,
+                description: 'Développe des modèles de machine learning',
+                icon: 'fa-brain'
+            },
+            {
+                id: 'product-owner',
+                name: 'Product Owner',
+                port: 5012,
+                description: 'Définit les exigences et la vision du produit',
+                icon: 'fa-bullseye'
+            },
+            {
+                id: 'ux-designer',
+                name: 'UX Designer',
+                port: 5013,
+                description: 'Conçoit l\'expérience utilisateur',
+                icon: 'fa-pencil-ruler'
+            }
+        ];
+        
+        // Génération des cartes d'agents
+        function generateAgentCards() {
+            const agentCardsContainer = document.getElementById('agent-cards');
+            agentCardsContainer.innerHTML = '';
+            
+            agents.forEach(agent => {
+                const card = document.createElement('div');
+                card.className = 'col-md-6 mb-3';
+                card.innerHTML = `
+                    <div class="card agent-card stopped" id="${agent.id}-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas ${agent.icon} me-2"></i>${agent.name}
+                            </div>
+                            <span class="status-badge status-stopped" id="${agent.id}-status">Arrêté</span>
+                        </div>
+                        <div class="card-body">
+                            <p>${agent.description}</p>
+                            <p><strong>Port:</strong> ${agent.port}</p>
+                            <div class="d-flex justify-content-between action-buttons">
+                                <button class="btn btn-sm btn-success start-btn" data-agent="${agent.id}">
+                                    <i class="fas fa-play me-1"></i>Démarrer
+                                </button>
+                                <button class="btn btn-sm btn-warning pause-btn" data-agent="${agent.id}" disabled>
+                                    <i class="fas fa-pause me-1"></i>Pause
+                                </button>
+                                <button class="btn btn-sm btn-info resume-btn" data-agent="${agent.id}" disabled>
+                                    <i class="fas fa-play-circle me-1"></i>Reprendre
+                                </button>
+                                <button class="btn btn-sm btn-danger stop-btn" data-agent="${agent.id}" disabled>
+                                    <i class="fas fa-stop me-1"></i>Arrêter
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <a href="http://localhost:${agent.port}" target="_blank" class="btn btn-sm btn-outline-primary w-100">
+                                    <i class="fas fa-external-link-alt me-1"></i>Ouvrir l'Interface
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                agentCardsContainer.appendChild(card);
+            });
+        }
+        
+        // Exécution d'une commande Make
+        function executeMakeCommand(command) {
+            addLog('info', `Exécution de la commande: make ${command}`);
+            
+            fetch('/api/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command: command })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addLog('success', `Commande 'make ${command}' exécutée avec succès`);
+                    if (data.stdout) {
+                        data.stdout.split('\n').filter(line => line.trim() !== '').forEach(line => {
+                            addLog('info', line);
+                        });
+                    }
+                } else {
+                    addLog('error', `Erreur lors de l'exécution de la commande: ${data.message}`);
+                    if (data.stderr) {
+                        data.stderr.split('\n').filter(line => line.trim() !== '').forEach(line => {
+                            addLog('error', line);
+                        });
+                    }
+                }
+                refreshStatus();
+            })
+            .catch(error => {
+                addLog('error', `Erreur lors de la requête: ${error.message}`);
+            });
+        }
+        
+        // Ajouter un message de log
+        function addLog(type, message) {
+            const logContainer = document.getElementById('log-container');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // Actualiser l'état des agents
+        function refreshStatus() {
+            addLog('info', 'Actualisation de l\'état des agents...');
+            
+            fetch('/api/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Mise à jour de l'interface avec les statuts réels
+                    Object.entries(data.statuses).forEach(([agentId, status]) => {
+                        updateAgentStatus(agentId, status);
+                    });
+                    
+                    addLog('success', 'État des agents actualisé');
+                } else {
+                    addLog('error', `Erreur lors de l'actualisation des états: ${data.message}`);
+                }
+            })
+            .catch(error => {
+                addLog('error', `Erreur lors de la requête de statut: ${error.message}`);
+            });
+        }
+        
+        // Mettre à jour l'état d'un agent dans l'interface
+        function updateAgentStatus(agentId, status) {
+            const card = document.getElementById(`${agentId}-card`);
+            if (!card) {
+                console.warn(`Card element for agent ${agentId} not found`);
+                return;
+            }
+            
+            const statusBadge = document.getElementById(`${agentId}-status`);
+            if (!statusBadge) {
+                console.warn(`Status badge element for agent ${agentId} not found`);
+                return;
+            }
+
+            const startBtn = card.querySelector('.start-btn');
+            const pauseBtn = card.querySelector('.pause-btn');
+            const resumeBtn = card.querySelector('.resume-btn');
+            const stopBtn = card.querySelector('.stop-btn');
+            
+            if (!startBtn || !pauseBtn || !resumeBtn || !stopBtn) {
+                console.warn(`Button elements for agent ${agentId} not found`);
+                return;
+            }
+            
+            // Réinitialiser les classes
+            card.classList.remove('running', 'stopped', 'paused');
+            statusBadge.classList.remove('status-running', 'status-stopped', 'status-paused');
+            
+            // Appliquer les classes selon l'état
+            switch (status) {
+                case 'running':
+                    card.classList.add('running');
+                    statusBadge.classList.add('status-running');
+                    statusBadge.textContent = 'En cours d\'exécution';
+                    startBtn.disabled = true;
+                    pauseBtn.disabled = false;
+                    resumeBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    break;
+                case 'stopped':
+                    card.classList.add('stopped');
+                    statusBadge.classList.add('status-stopped');
+                    statusBadge.textContent = 'Arrêté';
+                    startBtn.disabled = false;
+                    pauseBtn.disabled = true;
+                    resumeBtn.disabled = true;
+                    stopBtn.disabled = true;
+                    break;
+                case 'paused':
+                    card.classList.add('paused');
+                    statusBadge.classList.add('status-paused');
+                    statusBadge.textContent = 'En pause';
+                    startBtn.disabled = true;
+                    pauseBtn.disabled = true;
+                    resumeBtn.disabled = false;
+                    stopBtn.disabled = false;
+                    break;
+                case 'unknown':
+                    card.classList.add('stopped');
+                    statusBadge.classList.add('status-stopped');
+                    statusBadge.textContent = 'Non disponible';
+                    startBtn.disabled = true;
+                    pauseBtn.disabled = true;
+                    resumeBtn.disabled = true;
+                    stopBtn.disabled = true;
+                    break;
+            }
+            
+            // Mise à jour du checkbox de sélection
+            const checkbox = document.getElementById(`${agentId}-check`);
+            if (checkbox) {
+                // Gestion spéciale pour le statut "unknown" (agents non disponibles)
+                if (status === 'unknown') {
+                    checkbox.disabled = true;
+                    checkbox.checked = false;
+                    checkbox.parentElement.title = "Agent non disponible dans le système";
+                } else {
+                    // Pour les autres statuts, activer uniquement pour les agents en cours d'exécution
+                    checkbox.disabled = !(status === 'running');
+                    checkbox.parentElement.title = "";
+                    
+                    // Ne décocher que si l'agent est arrêté (pas en pause)
+                    if (status === 'stopped') {
+                        checkbox.checked = false;
+                    }
+                }
+                
+                // Uniquement pour le déboggage
+                console.log(`Agent: ${agentId}, Status: ${status}, Checkbox found: ${!!checkbox}, Checkbox disabled: ${checkbox.disabled}`);
+            } else {
+                console.warn(`Checkbox for agent ${agentId} not found`);
+            }
+        }
+        
+        // Traitement de la soumission du formulaire de demande
+        function handleQuerySubmit(event) {
+            event.preventDefault();
+            
+            const queryText = document.getElementById('query-text').value;
+            const appUrl = document.getElementById('app-url').value;
+            const projectName = document.getElementById('project-name').value;
+            
+            if (!queryText) {
+                addLog('error', 'Veuillez saisir une demande');
+                return;
+            }
+            
+            // Récupérer les agents sélectionnés
+            const selectedAgents = [];
+            agents.forEach(agent => {
+                const checkbox = document.getElementById(`${agent.id}-check`);
+                if (checkbox && checkbox.checked) {
+                    selectedAgents.push(agent.id);
+                }
+            });
+            
+            if (selectedAgents.length === 0 || !selectedAgents.includes('chef-projet')) {
+                addLog('warning', 'L\'agent Chef de Projet est obligatoire pour traiter une demande');
+                return;
+            }
+            
+            // Préparation des données de la demande
+            const requestData = {
+                description: queryText,
+                app_url: appUrl,
+                project_name: projectName || 'mon-projet',
+                launch_python: selectedAgents.includes('dev-python'),
+                launch_go: selectedAgents.includes('dev-go'),
+                launch_frontend: selectedAgents.includes('dev-frontend'),
+                launch_android: selectedAgents.includes('dev-android'),
+                launch_ios: selectedAgents.includes('dev-ios'),
+                launch_qa: selectedAgents.includes('qa'),
+                launch_performance: selectedAgents.includes('perf'),
+                launch_devops: selectedAgents.includes('devops'),
+                launch_analytics: selectedAgents.includes('analytics'),
+                launch_communication: selectedAgents.includes('communication'),
+                launch_ml: selectedAgents.includes('ml'),
+                launch_product_owner: selectedAgents.includes('product-owner'),
+                launch_ux_designer: selectedAgents.includes('ux-designer')
+            };
+            
+            addLog('info', `Envoi de la demande avec les agents: ${selectedAgents.join(', ')}`);
+            
+            // Variables pour la barre de progression
+            let progressBar = null;
+            let progressInterval = null;
+            let progress = 0;
+            
+            // Créer une barre de progression temporaire
+            function createProgressBar() {
+                const container = document.createElement('div');
+                container.id = 'progress-container';
+                container.className = 'mt-3';
+                container.innerHTML = `
+                    <div class="progress">
+                        <div id="request-progress" class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            0%
+                        </div>
+                    </div>
+                    <small class="text-muted mt-1">Envoi de la demande au Chef de Projet... (peut prendre 1-2 minutes)</small>
+                `;
+                
+                // Insérer la barre après le formulaire
+                const form = document.getElementById('query-form');
+                form.parentNode.insertBefore(container, form.nextSibling);
+                
+                // Récupérer la référence à la barre de progression
+                progressBar = document.getElementById('request-progress');
+                
+                // Démarrer une animation pour la barre de progression
+                progressInterval = setInterval(() => {
+                    // Adapter la vitesse de progression en fonction du temps écoulé
+                    // Progression plus lente pour refléter le long temps de traitement
+                    if (progress < 40) {
+                        progress += Math.random() * 2;  // Début rapide
+                    } else if (progress < 60) {
+                        progress += Math.random() * 0.8;  // Ralentissement
+                    } else if (progress < 75) {
+                        progress += Math.random() * 0.3;  // Encore plus lent
+                    } else if (progress < 85) {
+                        progress += Math.random() * 0.1;  // Très lent à la fin
+                    }
+                    
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.setAttribute('aria-valuenow', progress);
+                    progressBar.textContent = `${Math.round(progress)}%`;
+                    
+                    // Ajouter un message supplémentaire quand la progression ralentit
+                    if (progress > 60 && !document.getElementById('long-wait-message')) {
+                        const waitMessage = document.createElement('small');
+                        waitMessage.id = 'long-wait-message';
+                        waitMessage.className = 'text-info d-block mt-1';
+                        waitMessage.innerHTML = '<i class="fas fa-info-circle me-1"></i>L\'agent Chef de Projet analyse votre demande et prépare une réponse...';
+                        document.getElementById('progress-container').appendChild(waitMessage);
+                    }
+                }, 500);
+            }
+            
+            // Nettoyer la barre de progression
+            function cleanupProgressBar() {
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+                
+                const container = document.getElementById('progress-container');
+                if (container) {
+                    setTimeout(() => {
+                        container.remove();
+                    }, 2000);  // Attendre 2s avant de supprimer pour laisser l'utilisateur voir la fin
+                }
+            }
+            
+            // Initialiser la barre de progression
+            createProgressBar();
+            
+            // Envoyer la demande au Chef de Projet via le backend avec un timeout très long
+            // Utiliser la route avec sauvegarde pour permettre la reprise
+            const fetchController = new AbortController();
+            const fetchTimeout = setTimeout(() => fetchController.abort(), 180000);  // 3 minutes timeout
+            
+            fetch('/api/forward-request-with-save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData),
+                signal: fetchController.signal
+            })
+            .then(response => {
+                // Compléter la barre de progression
+                progress = 100;
+                if (progressBar) {
+                    progressBar.style.width = `100%`;
+                    progressBar.setAttribute('aria-valuenow', 100);
+                    progressBar.textContent = `100%`;
+                    progressBar.classList.remove('progress-bar-animated');
+                }
+                
+                return response.json();
+            })
+            .then(data => {
+                clearTimeout(fetchTimeout);
+                
+                if (data.success) {
+                    addLog('success', 'Demande envoyée avec succès aux agents sélectionnés');
+                    addLog('info', 'Redirection vers l\'interface du Chef de Projet...');
+                    
+                    // Mettre à jour la classe de la barre de progression pour indiquer le succès
+                    if (progressBar) {
+                        progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+                        progressBar.classList.add('bg-success');
+                    }
+                    
+                    // Rediriger vers l'interface du Chef de Projet après une courte pause
+                    setTimeout(() => {
+                        window.open('http://localhost:5000', '_blank');
+                    }, 1000);
+                } else {
+                    addLog('error', `Erreur lors de l'envoi de la demande: ${data.message}`);
+                    
+                    // Mettre à jour la classe de la barre de progression pour indiquer l'échec
+                    if (progressBar) {
+                        progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+                        progressBar.classList.add('bg-danger');
+                    }
+                    
+                    if (data.details) {
+                        addLog('error', data.details);
+                    }
+                    
+                    // Afficher un message d'erreur plus explicite
+                    const errorContainer = document.createElement('div');
+                    errorContainer.className = 'alert alert-danger mt-3';
+                    errorContainer.innerHTML = `
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i>Échec de la demande</h5>
+                        <p>${data.message}</p>
+                        <p class="mb-0"><small>${data.details || 'Essayez de démarrer ou redémarrer l\'agent Chef de Projet avec la commande "make start-chef-projet"'}</small></p>
+                    `;
+                    
+                    const container = document.getElementById('progress-container');
+                    if (container) {
+                        container.parentNode.insertBefore(errorContainer, container.nextSibling);
+                    }
+                }
+                
+                // Nettoyer la progression
+                cleanupProgressBar();
+            })
+            .catch(error => {
+                clearTimeout(fetchTimeout);
+                
+                let errorMessage = error.message;
+                if (error.name === 'AbortError') {
+                    errorMessage = 'La demande a été abandonnée - délai d\'attente dépassé (3 minutes)';
+                }
+                
+                addLog('error', `Erreur lors de la requête: ${errorMessage}`);
+                
+                // Mettre à jour la classe de la barre de progression pour indiquer l'échec
+                if (progressBar) {
+                    progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+                    progressBar.classList.add('bg-danger');
+                }
+                
+                // Afficher un message d'erreur plus explicite
+                const errorContainer = document.createElement('div');
+                errorContainer.className = 'alert alert-danger mt-3';
+                errorContainer.innerHTML = `
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>Échec de la connexion</h5>
+                    <p>${errorMessage}</p>
+                    <p class="mb-0"><small>Vérifiez que l'agent Chef de Projet est bien démarré et accessible.</small></p>
+                `;
+                
+                const container = document.getElementById('progress-container');
+                if (container) {
+                    container.parentNode.insertBefore(errorContainer, container.nextSibling);
+                }
+                
+                // Nettoyer la progression
+                cleanupProgressBar();
+            });
+        }
+        
+        // Vérifier si des tâches sont en cours
+        function checkPendingTasks() {
+            // Cette fonction vérifie l'existence de tâches sauvegardées
+            fetch('/api/check-pending-tasks')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.pendingTasks && data.pendingTasks.length > 0) {
+                        // Afficher le panneau de restauration
+                        document.getElementById('restore-panel').style.display = 'block';
+                        // Désactiver le formulaire par défaut
+                        document.getElementById('query-form').classList.add('opacity-50');
+                        document.querySelectorAll('#query-form input, #query-form textarea, #query-form button').forEach(el => {
+                            el.disabled = true;
+                        });
+                        
+                        // Ajouter les informations sur les tâches en attente
+                        const tasksInfo = document.createElement('div');
+                        tasksInfo.className = 'mt-2 small';
+                        let tasksList = '<strong>Tâches en attente:</strong><ul class="mb-0">';
+                        data.pendingTasks.forEach(task => {
+                            tasksList += `<li>${task.description || 'Tâche sans description'} - ${new Date(task.started_at).toLocaleString()}</li>`;
+                        });
+                        tasksList += '</ul>';
+                        tasksInfo.innerHTML = tasksList;
+                        document.getElementById('restore-panel').appendChild(tasksInfo);
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la vérification des tâches en attente:", error);
+                    // En cas d'erreur, on n'affiche pas le panneau et on permet l'utilisation normale
+                });
+        }
+        
+        // Gestion de la reprise des tâches
+        function resumePendingTasks() {
+            fetch('/api/resume-tasks', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addLog('success', 'Reprise des tâches en cours...');
+                    // Rediriger vers l'interface du Chef de Projet
+                    setTimeout(() => {
+                        window.open('http://localhost:5000', '_blank');
+                    }, 1000);
+                } else {
+                    addLog('error', `Erreur lors de la reprise des tâches: ${data.message}`);
+                }
+                // Réactiver l'interface
+                hideRestorePanel();
+            })
+            .catch(error => {
+                addLog('error', `Erreur de connexion: ${error.message}`);
+                hideRestorePanel();
+            });
+        }
+        
+        // Effacer les tâches en attente
+        function clearPendingTasks() {
+            fetch('/api/clear-tasks', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addLog('info', 'Tâches précédentes effacées.');
+                } else {
+                    addLog('warning', `Erreur lors de l'effacement des tâches: ${data.message}`);
+                }
+                // Réactiver l'interface dans tous les cas
+                hideRestorePanel();
+            })
+            .catch(error => {
+                addLog('error', `Erreur de connexion: ${error.message}`);
+                hideRestorePanel();
+            });
+        }
+        
+        // Cacher le panneau de restauration et réactiver le formulaire
+        function hideRestorePanel() {
+            document.getElementById('restore-panel').style.display = 'none';
+            document.getElementById('query-form').classList.remove('opacity-50');
+            document.querySelectorAll('#query-form input, #query-form textarea, #query-form button').forEach(el => {
+                el.disabled = false;
+            });
+        }
+        
+        // Fonctions pour gérer l'historique des prompts
+        function loadPromptsHistory() {
+            // Récupérer l'historique des prompts depuis le serveur
+            fetch('/api/prompts-history')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.prompts) {
+                        // Mettre à jour le compteur
+                        const count = data.prompts.length;
+                        document.getElementById('prompts-count').textContent = count;
+                        
+                        // Afficher les prompts
+                        const promptsList = document.getElementById('prompts-list');
+                        if (count === 0) {
+                            promptsList.innerHTML = '<div class="text-center p-3 text-muted">Aucun prompt dans l\'historique</div>';
+                            return;
+                        }
+                        
+                        // Trier les prompts par date (du plus récent au plus ancien)
+                        const sortedPrompts = [...data.prompts].sort((a, b) => b.timestamp - a.timestamp);
+                        
+                        // Générer le HTML pour chaque prompt
+                        let promptsHtml = '';
+                        sortedPrompts.forEach(prompt => {
+                            const date = new Date(prompt.timestamp);
+                            const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                            
+                            // Générer les tags pour les agents
+                            let agentTags = '';
+                            if (prompt.agents && prompt.agents.length > 0) {
+                                prompt.agents.forEach(agent => {
+                                    // Extraire le nom de l'agent de la clé launch_X
+                                    const agentName = agent.replace('launch_', '').replace('_', ' ');
+                                    agentTags += `<span class="agent-tag">${agentName}</span>`;
+                                });
+                            }
+                            
+                            promptsHtml += `
+                            <div class="prompt-item" data-prompt="${encodeURIComponent(prompt.text)}" data-project="${encodeURIComponent(prompt.project_name || '')}" data-url="${encodeURIComponent(prompt.app_url || '')}">
+                                <div class="d-flex justify-content-between">
+                                    <div class="prompt-text">${prompt.text.substring(0, 80)}${prompt.text.length > 80 ? '...' : ''}</div>
+                                    <div class="prompt-date">${formattedDate}</div>
+                                </div>
+                                <div class="prompt-agents">${agentTags || 'Aucun agent spécifié'}</div>
+                            </div>`;
+                        });
+                        
+                        promptsList.innerHTML = promptsHtml;
+                        
+                        // Ajouter les gestionnaires d'événements pour sélectionner un prompt
+                        document.querySelectorAll('.prompt-item').forEach(item => {
+                            item.addEventListener('click', function() {
+                                const promptText = decodeURIComponent(this.getAttribute('data-prompt'));
+                                const projectName = decodeURIComponent(this.getAttribute('data-project'));
+                                const appUrl = decodeURIComponent(this.getAttribute('data-url'));
+                                
+                                // Remplir le formulaire avec les valeurs du prompt
+                                document.getElementById('query-text').value = promptText;
+                                document.getElementById('project-name').value = projectName;
+                                document.getElementById('app-url').value = appUrl;
+                                
+                                // Afficher un message et scrolle vers le formulaire
+                                addLog('info', 'Prompt précédent chargé dans le formulaire');
+                                document.getElementById('query-form').scrollIntoView({ behavior: 'smooth' });
+                                
+                                // Mettre en surbrillance le formulaire brièvement
+                                const form = document.getElementById('query-form');
+                                form.classList.add('border', 'border-primary');
+                                setTimeout(() => {
+                                    form.classList.remove('border', 'border-primary');
+                                }, 1500);
+                            });
+                        });
+                    } else {
+                        document.getElementById('prompts-list').innerHTML = 
+                            '<div class="text-center p-3 text-muted">Erreur lors du chargement de l\'historique</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur lors du chargement de l'historique:", error);
+                    document.getElementById('prompts-list').innerHTML = 
+                        '<div class="text-center p-3 text-danger">Erreur de connexion</div>';
+                });
+        }
+        
+        function loadLatestPrompt() {
+            // Récupérer le dernier prompt utilisé
+            fetch('/api/latest-prompt')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.prompt) {
+                        const prompt = data.prompt;
+                        
+                        // Remplir le formulaire avec les valeurs du dernier prompt
+                        document.getElementById('query-text').value = prompt.text || '';
+                        document.getElementById('project-name').value = prompt.project_name || '';
+                        document.getElementById('app-url').value = prompt.app_url || '';
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur lors du chargement du dernier prompt:", error);
+                });
+        }
+        
+        // Gestion de l'actualisation automatique
+        let autoRefreshInterval = null;
+        let countdownInterval = null;
+        let countdownValue = 30;
+        
+        function startAutoRefresh() {
+            // Arrêter les intervalles existants
+            stopAutoRefresh();
+            
+            // Mettre à jour le compteur
+            countdownValue = 30;
+            document.getElementById('refresh-countdown').textContent = `${countdownValue}s`;
+            
+            // Démarrer le compte à rebours
+            countdownInterval = setInterval(() => {
+                countdownValue--;
+                document.getElementById('refresh-countdown').textContent = `${countdownValue}s`;
+                
+                // Changer la couleur quand on approche du rafraîchissement
+                if (countdownValue <= 5) {
+                    document.getElementById('refresh-countdown').classList.remove('bg-secondary');
+                    document.getElementById('refresh-countdown').classList.add('bg-primary');
+                } else {
+                    document.getElementById('refresh-countdown').classList.remove('bg-primary');
+                    document.getElementById('refresh-countdown').classList.add('bg-secondary');
+                }
+            }, 1000);
+            
+            // Démarrer l'actualisation automatique
+            autoRefreshInterval = setInterval(() => {
+                // Ne rafraîchir que si l'option est activée
+                if (document.getElementById('auto-refresh-toggle').checked) {
+                    refreshStatus();
+                    
+                    // Log discret pour indiquer l'actualisation
+                    addLog('info', 'Actualisation automatique des états effectuée');
+                    
+                    // Réinitialiser le compteur
+                    countdownValue = 30;
+                    document.getElementById('refresh-countdown').textContent = `${countdownValue}s`;
+                    document.getElementById('refresh-countdown').classList.remove('bg-primary');
+                    document.getElementById('refresh-countdown').classList.add('bg-secondary');
+                }
+            }, 30000); // Toutes les 30 secondes
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+            
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+        
+        // Initialisation de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            generateAgentCards();
+            refreshStatus();
+            
+            // Vérifier si des tâches sont en attente
+            checkPendingTasks();
+            
+            // Charger l'historique des prompts et le dernier prompt utilisé
+            loadPromptsHistory();
+            loadLatestPrompt();
+            
+            // Démarrer l'actualisation automatique
+            startAutoRefresh();
+            
+            // Gestionnaires d'événements pour les boutons de restauration
+            document.getElementById('resume-tasks-btn').addEventListener('click', resumePendingTasks);
+            document.getElementById('clear-tasks-btn').addEventListener('click', clearPendingTasks);
+            
+            // Gestionnaire pour le bouton d'actualisation de l'historique
+            document.getElementById('refresh-history-btn').addEventListener('click', loadPromptsHistory);
+            
+            // Gestionnaire pour le toggle d'actualisation automatique
+            document.getElementById('auto-refresh-toggle').addEventListener('change', function() {
+                if (this.checked) {
+                    // Redémarrer l'actualisation automatique
+                    startAutoRefresh();
+                    addLog('info', 'Actualisation automatique activée (intervalle: 30s)');
+                } else {
+                    // Arrêter l'actualisation automatique
+                    stopAutoRefresh();
+                    document.getElementById('refresh-countdown').textContent = 'OFF';
+                    document.getElementById('refresh-countdown').classList.remove('bg-secondary', 'bg-primary');
+                    document.getElementById('refresh-countdown').classList.add('bg-danger');
+                    addLog('info', 'Actualisation automatique désactivée');
+                }
+            });
+            
+            // Gestionnaires d'événements pour les boutons globaux
+            document.getElementById('start-all-btn').addEventListener('click', () => {
+                executeMakeCommand('start');
+            });
+            
+            document.getElementById('pause-all-btn').addEventListener('click', () => {
+                executeMakeCommand('pause');
+            });
+            
+            document.getElementById('resume-all-btn').addEventListener('click', () => {
+                executeMakeCommand('resume');
+            });
+            
+            document.getElementById('stop-all-btn').addEventListener('click', () => {
+                executeMakeCommand('stop');
+            });
+            
+            document.getElementById('refresh-status-btn').addEventListener('click', () => {
+                refreshStatus();
+                
+                // Réinitialiser le compteur si l'actualisation automatique est activée
+                if (document.getElementById('auto-refresh-toggle').checked) {
+                    countdownValue = 30;
+                    document.getElementById('refresh-countdown').textContent = `${countdownValue}s`;
+                    document.getElementById('refresh-countdown').classList.remove('bg-primary');
+                    document.getElementById('refresh-countdown').classList.add('bg-secondary');
+                }
+            });
+            
+            // Gestionnaires d'événements pour les boutons des agents individuels
+            document.querySelectorAll('.start-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const agentId = btn.getAttribute('data-agent');
+                    executeMakeCommand(`start-${agentId}`);
+                });
+            });
+            
+            document.querySelectorAll('.pause-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const agentId = btn.getAttribute('data-agent');
+                    executeMakeCommand(`pause-${agentId}`);
+                });
+            });
+            
+            document.querySelectorAll('.resume-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const agentId = btn.getAttribute('data-agent');
+                    executeMakeCommand(`resume-${agentId}`);
+                });
+            });
+            
+            document.querySelectorAll('.stop-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const agentId = btn.getAttribute('data-agent');
+                    executeMakeCommand(`stop-${agentId}`);
+                });
+            });
+            
+            // Gestionnaire pour le formulaire de demande
+            document.getElementById('query-form').addEventListener('submit', handleQuerySubmit);
+            
+            // L'agent Chef de Projet est obligatoire
+            const chefProjetCheck = document.getElementById('chef-projet-check');
+            if (chefProjetCheck) {
+                // Toujours activer la case à cocher du Chef de Projet
+                chefProjetCheck.disabled = false;
+                chefProjetCheck.checked = true;
+                
+                chefProjetCheck.addEventListener('change', function() {
+                    if (!this.checked) {
+                        this.checked = true;
+                        addLog('warning', 'L\'agent Chef de Projet est obligatoire et ne peut pas être désactivé');
+                    }
+                });
+            }
+            
+            // Logs initiaux
+            addLog('info', 'Panneau d\'administration initialisé');
+            addLog('info', 'Utilisez les boutons pour contrôler les agents');
+        });
+    </script>
+</body>
+</html>

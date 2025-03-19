@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Chef de Projet IA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f7f9fc;
+        }
+        
+        .container-fluid {
+            max-width: 1400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        
+        textarea {
+            resize: vertical;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .log-container {
+            height: 250px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-info {
+            color: #0c5460;
+        }
+        
+        .log-error {
+            color: #721c24;
+        }
+        
+        .log-success {
+            color: #155724;
+        }
+        
+        .log-warning {
+            color: #856404;
+        }
+        
+        .tab-content {
+            padding: 20px 0;
+        }
+        
+        .nav-tabs {
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .nav-tabs .nav-link {
+            margin-bottom: -1px;
+            border: 1px solid transparent;
+            border-top-left-radius: 0.25rem;
+            border-top-right-radius: 0.25rem;
+            color: #495057;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: #007bff;
+            background-color: #fff;
+            border-color: #dee2e6 #dee2e6 #fff;
+            font-weight: 600;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        /* Styles pour les suggestions */
+        .suggestion-card {
+            background-color: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .suggestion-card:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .suggestion-card.selected {
+            border-color: #28a745;
+            border-width: 2px;
+            background-color: #f0fff4;
+        }
+        
+        .suggestion-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .suggestion-description {
+            color: #555;
+            margin-bottom: 12px;
+        }
+        
+        .suggestion-improved {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="header">
+            <h1>Agent Chef de Projet IA</h1>
+            <p class="lead">Orchestration de projet avec agents IA pour le développement et l'assurance qualité</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-section">
+                    <form id="projectRequestForm">
+                        <div class="form-group">
+                            <label for="project-description">Description du Projet:</label>
+                            <textarea class="form-control" id="project-description" rows="8" placeholder="Décrivez en détail le projet et vos attentes..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="app-url">URL de l'Application à Tester (optionnel):</label>
+                            <input type="text" class="form-control" id="app-url" placeholder="https://exemple.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-name">Nom du Projet (pour Go):</label>
+                            <input type="text" class="form-control" id="project-name" placeholder="Nom du projet Go">
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-dev">
+                            <label class="form-check-label" for="launch-dev">
+                                Lancer l'agent développeur backend standard
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-go" checked>
+                            <label class="form-check-label" for="launch-go">
+                                Lancer l'agent développeur Go backend
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-frontend">
+                            <label class="form-check-label" for="launch-frontend">
+                                Lancer l'agent développeur frontend
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3 ms-4" id="cursor-option" style="display: none;">
+                            <input class="form-check-input" type="checkbox" id="open-cursor">
+                            <label class="form-check-label" for="open-cursor">
+                                Ouvrir avec Cursor
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-qa">
+                            <label class="form-check-label" for="launch-qa">
+                                Lancer l'agent QA (nécessite une URL)
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-performance">
+                            <label class="form-check-label" for="launch-performance">
+                                Lancer l'agent Performance (nécessite une URL)
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-devops">
+                            <label class="form-check-label" for="launch-devops">
+                                Lancer l'agent DevOps
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-ml">
+                            <label class="form-check-label" for="launch-ml">
+                                Lancer l'agent Machine Learning
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-python">
+                            <label class="form-check-label" for="launch-python">
+                                Lancer l'agent Développeur Python
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-analytics">
+                            <label class="form-check-label" for="launch-analytics">
+                                Lancer l'agent Analytics & Monitoring
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-product-owner">
+                            <label class="form-check-label" for="launch-product-owner">
+                                Lancer l'agent Product Owner
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="launch-ux-designer">
+                            <label class="form-check-label" for="launch-ux-designer">
+                                Lancer l'agent UX Designer
+                            </label>
+                        </div>
+                        
+                        <!-- Boutons d'analyse et de lancement -->
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-info" id="analyze-btn">
+                                <span id="default-analyze-text">Analyser la demande</span>
+                                <span id="loading-analyze-text" style="display: none;">
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    Analyse en cours...
+                                </span>
+                            </button>
+                            
+                            <button type="submit" class="btn btn-primary" id="submit-btn">
+                                <span id="default-submit-text">Lancer le Projet</span>
+                                <span id="loading-submit-text" style="display: none;">
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    Traitement en cours...
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Section pour les suggestions d'amélioration -->
+                <div id="suggestions-container" class="mt-4" style="display: none;">
+                    <h4>Suggestions d'amélioration:</h4>
+                    <div class="alert alert-info mb-3" id="analysis-message"></div>
+                    
+                    <div id="suggestions-list" class="mb-3">
+                        <!-- Les suggestions seront ajoutées ici dynamiquement -->
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-secondary" id="use-original-btn">
+                            Continuer avec ma demande originale
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="log-section mt-4">
+                    <h4>Logs:</h4>
+                    <div class="log-container" id="log-container"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="specifications-tab" data-bs-toggle="tab" data-bs-target="#specifications" type="button" role="tab" aria-controls="specifications" aria-selected="true">Spécifications</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab" aria-controls="tasks" aria-selected="false">Tâches</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="testing-tab" data-bs-toggle="tab" data-bs-target="#testing" type="button" role="tab" aria-controls="testing" aria-selected="false">Plan de Test</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="dev-tab" data-bs-toggle="tab" data-bs-target="#dev" type="button" role="tab" aria-controls="dev" aria-selected="false">Dev</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="qa-tab" data-bs-toggle="tab" data-bs-target="#qa" type="button" role="tab" aria-controls="qa" aria-selected="false">QA</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="resultTabsContent">
+                    <div class="tab-pane fade show active" id="specifications" role="tabpanel" aria-labelledby="specifications-tab">
+                        <div class="loading" id="loading-specifications">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <p class="text-center mt-2">Chargement des spécifications...</p>
+                            <div class="alert alert-info mt-3">
+                                <h5 class="alert-heading">Initialisation en cours</h5>
+                                <p>Pour commencer un nouveau projet, veuillez remplir le formulaire à gauche et cliquer sur "Analyser".</p>
+                                <hr>
+                                <p class="mb-0">Si cette page reste bloquée en chargement, vérifiez les crédentials AWS dans votre fichier .env.</p>
+                                <button id="hide-loading-btn" class="btn btn-sm btn-outline-primary mt-2">Masquer ce message</button>
+                            </div>
+                        </div>
+                        <div class="content-section" id="specifications-content" style="display: none;">
+                            <pre><code class="language-json" id="specifications-code"></code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="tasks" role="tabpanel" aria-labelledby="tasks-tab">
+                        <div class="loading" id="loading-tasks">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <p class="text-center mt-2">Chargement des tâches...</p>
+                        </div>
+                        <div class="content-section" id="tasks-content" style="display: none;">
+                            <pre><code class="language-json" id="tasks-code"></code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="testing" role="tabpanel" aria-labelledby="testing-tab">
+                        <div class="loading" id="loading-testing">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <p class="text-center mt-2">Chargement du plan de test...</p>
+                        </div>
+                        <div class="content-section" id="testing-content" style="display: none;">
+                            <pre><code class="language-json" id="testing-code"></code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="dev" role="tabpanel" aria-labelledby="dev-tab">
+                        <div class="loading" id="loading-dev">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <p class="text-center mt-2">Chargement des résultats de développement...</p>
+                        </div>
+                        <div class="content-section" id="dev-content" style="display: none;">
+                            <div id="dev-response"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="qa" role="tabpanel" aria-labelledby="qa-tab">
+                        <div class="loading" id="loading-qa">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <p class="text-center mt-2">Chargement des résultats QA...</p>
+                        </div>
+                        <div class="content-section" id="qa-content" style="display: none;">
+                            <div id="qa-response"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // On vérifie d'abord si highlight.js est chargé
+            if (typeof hljs !== 'undefined') {
+                hljs.highlightAll();
+            } else {
+                console.warn("highlight.js n'est pas chargé, tentative de chargement alternatif");
+                // Chargement alternatif si nécessaire
+                const script = document.createElement('script');
+                script.src = "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js";
+                script.onload = function() {
+                    hljs.highlightAll();
+                };
+                document.head.appendChild(script);
+            }
+            
+            // Initialiser Socket.IO avec des options explicites
+            const socket = io({
+                transports: ['websocket', 'polling'],  // Essayer WebSocket d'abord, puis fallback sur polling
+                forceNew: true,
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                timeout: 20000
+            });
+            
+            // Gestion des erreurs de connexion
+            socket.on('connect_error', function(error) {
+                console.error('Erreur de connexion Socket.IO:', error);
+                addLog('error', 'Erreur de connexion avec le serveur. Tentative de reconnexion...');
+            });
+            
+            socket.on('connect', function() {
+                console.log('Connexion Socket.IO établie');
+                addLog('success', 'Connexion avec le serveur établie');
+                
+                // Envoyer un événement pour demander les logs au serveur
+                socket.emit('request_logs');
+                console.log('Demande de logs envoyée au serveur');
+            });
+            const logContainer = document.getElementById('log-container');
+            const projectDescription = document.getElementById('project-description');
+            const appUrl = document.getElementById('app-url');
+            const projectName = document.getElementById('project-name');
+            const submitBtn = document.getElementById('submit-btn');
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const useOriginalBtn = document.getElementById('use-original-btn');
+            const suggestionsContainer = document.getElementById('suggestions-container');
+            const suggestionsList = document.getElementById('suggestions-list');
+            const analysisMessage = document.getElementById('analysis-message');
+            const hideLoadingBtn = document.getElementById('hide-loading-btn');
+            
+            // Éléments pour les onglets de résultats
+            const specificationsContent = document.getElementById('specifications-content');
+            const specificationsCode = document.getElementById('specifications-code');
+            const loadingSpecifications = document.getElementById('loading-specifications');
+            
+            const tasksContent = document.getElementById('tasks-content');
+            const tasksCode = document.getElementById('tasks-code');
+            const loadingTasks = document.getElementById('loading-tasks');
+            
+            const testingContent = document.getElementById('testing-content');
+            const testingCode = document.getElementById('testing-code');
+            const loadingTesting = document.getElementById('loading-testing');
+            
+            const devContent = document.getElementById('dev-content');
+            const devResponse = document.getElementById('dev-response');
+            const loadingDev = document.getElementById('loading-dev');
+            
+            const qaContent = document.getElementById('qa-content');
+            const qaResponse = document.getElementById('qa-response');
+            const loadingQa = document.getElementById('loading-qa');
+            
+            // Gestion des options supplémentaires
+            const launchFrontend = document.getElementById('launch-frontend');
+            const cursorOption = document.getElementById('cursor-option');
+            const openCursor = document.getElementById('open-cursor');
+            
+            // Variables pour stocker les suggestions
+            let currentSuggestions = [];
+            let selectedSuggestion = null;
+            
+            // Gestionnaire pour le bouton qui masque le message de chargement initial
+            if (hideLoadingBtn) {
+                hideLoadingBtn.addEventListener('click', function() {
+                    // Masquer le spinner et afficher un contenu vide
+                    loadingSpecifications.style.display = 'none';
+                    specificationsContent.style.display = 'block';
+                    specificationsCode.textContent = JSON.stringify({
+                        message: "En attente d'une nouvelle demande. Utilisez le formulaire à gauche pour commencer."
+                    }, null, 2);
+                    
+                    // Vérifier si hljs est disponible
+                    if (typeof hljs !== 'undefined') {
+                        hljs.highlightElement(specificationsCode);
+                    }
+                    
+                    // Ajouter un log
+                    addLog('info', "Affichage initial masqué. Veuillez soumettre une demande pour commencer.");
+                });
+            }
+            
+            // Simuler un déblocage automatique après 10 secondes
+            setTimeout(function() {
+                if (loadingSpecifications.style.display !== 'none') {
+                    addLog('warning', "Chargement initial long. Vous pouvez continuer à utiliser l'interface pendant le chargement.");
+                }
+            }, 10000);
+            
+            // Afficher l'option Cursor uniquement quand le frontend est coché
+            launchFrontend.addEventListener('change', function() {
+                if (this.checked) {
+                    cursorOption.style.display = 'block';
+                } else {
+                    cursorOption.style.display = 'none';
+                    openCursor.checked = false;
+                }
+            });
+            
+            // Fonction pour ajouter un log
+            function addLog(type, message) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-${type}`;
+                logEntry.textContent = message;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Formatter le code JSON avec indentation
+            function formatJSON(json) {
+                try {
+                    return JSON.stringify(json, null, 2);
+                } catch (e) {
+                    return json;
+                }
+            }
+            
+            // Gestion du clic sur le bouton d'analyse
+            analyzeBtn.addEventListener('click', function() {
+                const descriptionText = projectDescription.value.trim();
+                if (!descriptionText) {
+                    addLog('error', 'Veuillez entrer une description du projet');
+                    return;
+                }
+                
+                // Afficher l'état de chargement
+                analyzeBtn.querySelector('#default-analyze-text').style.display = 'none';
+                analyzeBtn.querySelector('#loading-analyze-text').style.display = 'inline-block';
+                analyzeBtn.disabled = true;
+                
+                // Réinitialiser l'interface
+                suggestionsContainer.style.display = 'none';
+                suggestionsList.innerHTML = '';
+                currentSuggestions = [];
+                selectedSuggestion = null;
+                
+                // Envoyer la demande d'analyse
+                fetch('/analyze_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        description: descriptionText
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Restaurer l'état du bouton
+                    analyzeBtn.querySelector('#default-analyze-text').style.display = 'inline-block';
+                    analyzeBtn.querySelector('#loading-analyze-text').style.display = 'none';
+                    analyzeBtn.disabled = false;
+                    
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                        return;
+                    }
+                    
+                    // Afficher les suggestions
+                    if (data.suggestions) {
+                        currentSuggestions = data.suggestions.suggestions || [];
+                        
+                        // Afficher l'analyse
+                        analysisMessage.textContent = data.suggestions.analysis || "Analyse de votre demande";
+                        
+                        // Créer les cartes de suggestions
+                        if (currentSuggestions.length > 0) {
+                            currentSuggestions.forEach((suggestion, index) => {
+                                const card = document.createElement('div');
+                                card.className = 'suggestion-card';
+                                card.dataset.index = index;
+                                
+                                const title = document.createElement('div');
+                                title.className = 'suggestion-title';
+                                title.textContent = suggestion.title;
+                                
+                                const description = document.createElement('div');
+                                description.className = 'suggestion-description';
+                                description.textContent = suggestion.description;
+                                
+                                const improved = document.createElement('div');
+                                improved.className = 'suggestion-improved';
+                                improved.textContent = truncateText(suggestion.improved_request, 150);
+                                
+                                card.appendChild(title);
+                                card.appendChild(description);
+                                card.appendChild(improved);
+                                
+                                // Gestion du clic pour sélectionner une suggestion
+                                card.addEventListener('click', function() {
+                                    // Désélectionner la carte précédemment sélectionnée
+                                    document.querySelectorAll('.suggestion-card.selected').forEach(el => {
+                                        el.classList.remove('selected');
+                                    });
+                                    
+                                    // Sélectionner cette carte
+                                    this.classList.add('selected');
+                                    selectedSuggestion = currentSuggestions[this.dataset.index];
+                                    
+                                    // Informer l'utilisateur
+                                    addLog('info', `Suggestion sélectionnée: "${selectedSuggestion.title}"`);
+                                });
+                                
+                                suggestionsList.appendChild(card);
+                            });
+                            
+                            // Afficher le conteneur de suggestions
+                            suggestionsContainer.style.display = 'block';
+                        } else {
+                            suggestionsContainer.style.display = 'none';
+                            addLog('warning', "Aucune suggestion d'amélioration disponible");
+                        }
+                    }
+                })
+                .catch(error => {
+                    analyzeBtn.querySelector('#default-analyze-text').style.display = 'inline-block';
+                    analyzeBtn.querySelector('#loading-analyze-text').style.display = 'none';
+                    analyzeBtn.disabled = false;
+                    addLog('error', `Erreur lors de l'analyse: ${error.message}`);
+                });
+            });
+            
+            // Gestion du clic sur "Continuer avec ma demande originale"
+            useOriginalBtn.addEventListener('click', function() {
+                suggestionsContainer.style.display = 'none';
+                selectedSuggestion = null;
+                addLog('info', "Utilisation de la demande originale");
+            });
+            
+            // Fonction pour tronquer un texte
+            function truncateText(text, maxLength) {
+                if (text.length <= maxLength) return text;
+                return text.substring(0, maxLength) + '...';
+            }
+            
+            // Soumission du formulaire
+            document.getElementById('projectRequestForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const descriptionText = projectDescription.value.trim();
+                if (!descriptionText) {
+                    addLog('error', 'Veuillez entrer une description du projet');
+                    return;
+                }
+                
+                // Afficher l'état de chargement
+                submitBtn.querySelector('#default-submit-text').style.display = 'none';
+                submitBtn.querySelector('#loading-submit-text').style.display = 'inline-block';
+                submitBtn.disabled = true;
+                
+                // Préparer les données
+                const data = {
+                    description: descriptionText,
+                    app_url: appUrl.value.trim(),
+                    project_name: projectName.value.trim() || 'go-project',
+                    launch_dev: document.getElementById('launch-dev').checked,
+                    launch_go: document.getElementById('launch-go').checked,
+                    launch_frontend: document.getElementById('launch-frontend').checked,
+                    open_cursor: document.getElementById('open-cursor').checked,
+                    launch_qa: document.getElementById('launch-qa').checked,
+                    launch_performance: document.getElementById('launch-performance').checked,
+                    launch_devops: document.getElementById('launch-devops').checked,
+                    launch_ml: document.getElementById('launch-ml').checked,
+                    launch_python: document.getElementById('launch-python').checked,
+                    launch_analytics: document.getElementById('launch-analytics').checked,
+                    launch_product_owner: document.getElementById('launch-product-owner').checked,
+                    launch_ux_designer: document.getElementById('launch-ux-designer').checked
+                };
+                
+                // Ajouter la suggestion sélectionnée si elle existe
+                if (selectedSuggestion) {
+                    data.selected_suggestion = selectedSuggestion;
+                }
+                
+                // Réinitialiser l'interface
+                logContainer.innerHTML = '';
+                suggestionsContainer.style.display = 'none';
+                
+                // Afficher les écrans de chargement
+                loadingSpecifications.style.display = 'block';
+                specificationsContent.style.display = 'none';
+                
+                loadingTasks.style.display = 'block';
+                tasksContent.style.display = 'none';
+                
+                loadingTesting.style.display = 'block';
+                testingContent.style.display = 'none';
+                
+                loadingDev.style.display = 'block';
+                devContent.style.display = 'none';
+                
+                loadingQa.style.display = 'block';
+                qaContent.style.display = 'none';
+                
+                // Envoyer la requête
+                fetch('/project_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Restaurer l'état du bouton
+                    submitBtn.querySelector('#default-submit-text').style.display = 'inline-block';
+                    submitBtn.querySelector('#loading-submit-text').style.display = 'none';
+                    submitBtn.disabled = false;
+                    
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                        return;
+                    }
+                    
+                    // Traiter et afficher les résultats
+                    addLog('success', 'Projet traité avec succès');
+                })
+                .catch(error => {
+                    // Gérer les erreurs
+                    submitBtn.querySelector('#default-submit-text').style.display = 'inline-block';
+                    submitBtn.querySelector('#loading-submit-text').style.display = 'none';
+                    submitBtn.disabled = false;
+                    addLog('error', `Erreur lors du traitement: ${error.message}`);
+                });
+            });
+            
+            // Événements SocketIO
+            socket.on('log', function(data) {
+                console.log('Log reçu:', data.type, data.message);
+                addLog(data.type, data.message);
+            });
+            
+            socket.on('specifications_update', function(data) {
+                specificationsCode.textContent = formatJSON(data.specifications);
+                
+                // Vérifier si hljs est disponible
+                if (typeof hljs !== 'undefined') {
+                    hljs.highlightElement(specificationsCode);
+                }
+                
+                loadingSpecifications.style.display = 'none';
+                specificationsContent.style.display = 'block';
+            });
+            
+            socket.on('tasks_update', function(data) {
+                tasksCode.textContent = formatJSON(data.tasks);
+                
+                // Vérifier si hljs est disponible
+                if (typeof hljs !== 'undefined') {
+                    hljs.highlightElement(tasksCode);
+                }
+                
+                loadingTasks.style.display = 'none';
+                tasksContent.style.display = 'block';
+            });
+            
+            socket.on('test_plan_update', function(data) {
+                testingCode.textContent = formatJSON(data.test_plan);
+                
+                // Vérifier si hljs est disponible
+                if (typeof hljs !== 'undefined') {
+                    hljs.highlightElement(testingCode);
+                }
+                
+                loadingTesting.style.display = 'none';
+                testingContent.style.display = 'block';
+            });
+            
+            socket.on('dev_response_update', function(data) {
+                devResponse.textContent = JSON.stringify(data.dev_response, null, 2);
+                loadingDev.style.display = 'none';
+                devContent.style.display = 'block';
+            });
+            
+            socket.on('qa_response_update', function(data) {
+                qaResponse.textContent = JSON.stringify(data.qa_response, null, 2);
+                loadingQa.style.display = 'none';
+                qaContent.style.display = 'block';
+            });
+            
+            // Suggestions d'amélioration
+            socket.on('suggestions_update', function(data) {
+                addLog('info', "Suggestions d'amélioration reçues");
+                
+                // Stocker les suggestions pour une utilisation ultérieure
+                currentSuggestions = data.suggestions.suggestions || [];
+            });
+            
+            socket.on('product_owner_response_update', function(data) {
+                addLog('info', "Réponse de l'agent Product Owner reçue");
+            });
+            
+            socket.on('ux_designer_response_update', function(data) {
+                addLog('info', "Réponse de l'agent UX Designer reçue");
+            });
+            
+            socket.on('project_complete', function() {
+                addLog('success', 'Projet complet traité avec succès');
+            });
+            
+            // Gestion des erreurs critiques
+            socket.on('critical_error', function(data) {
+                // Afficher un message d'erreur dans les logs
+                addLog('error', `ERREUR CRITIQUE: ${data.message}`);
+                
+                // Réinitialiser les boutons de soumission
+                if (submitBtn.disabled) {
+                    submitBtn.querySelector('#default-submit-text').style.display = 'inline-block';
+                    submitBtn.querySelector('#loading-submit-text').style.display = 'none';
+                    submitBtn.disabled = false;
+                }
+                
+                if (analyzeBtn.disabled) {
+                    analyzeBtn.querySelector('#default-analyze-text').style.display = 'inline-block';
+                    analyzeBtn.querySelector('#loading-analyze-text').style.display = 'none';
+                    analyzeBtn.disabled = false;
+                }
+                
+                // Afficher une alerte bootstrap
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+                alertDiv.role = 'alert';
+                
+                const titleElement = document.createElement('h4');
+                titleElement.className = 'alert-heading';
+                titleElement.textContent = data.title || 'Erreur critique';
+                
+                const messageElement = document.createElement('p');
+                messageElement.textContent = data.message;
+                
+                const detailsElement = document.createElement('hr');
+                const smallElement = document.createElement('p');
+                smallElement.className = 'mb-0';
+                smallElement.textContent = data.details || 'Le traitement a été interrompu.';
+                
+                const closeButton = document.createElement('button');
+                closeButton.type = 'button';
+                closeButton.className = 'btn-close';
+                closeButton.setAttribute('data-bs-dismiss', 'alert');
+                closeButton.setAttribute('aria-label', 'Close');
+                
+                alertDiv.appendChild(titleElement);
+                alertDiv.appendChild(messageElement);
+                alertDiv.appendChild(detailsElement);
+                alertDiv.appendChild(smallElement);
+                alertDiv.appendChild(closeButton);
+                
+                // Insérer l'alerte au début du conteneur de logs
+                logContainer.prepend(alertDiv);
+            });
+        });
+    </script>
+    <!-- Charger highlight.js en dernier pour éviter les problèmes de chargement -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+</body>
+</html>

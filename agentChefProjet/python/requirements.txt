@@ -1,0 +1,7 @@
+flask
+flask-cors
+flask-socketio
+boto3
+eventlet
+requests
+python-dotenv
