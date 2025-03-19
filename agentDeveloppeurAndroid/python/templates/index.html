@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Développeur Android</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/kotlin.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/java.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/xml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/json.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        
+        .container-fluid {
+            max-width: 1400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 200px;
+            font-family: 'Courier New', Courier, monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .section-container {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        
+        .log-container {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-info {
+            color: #0c5460;
+        }
+        
+        .log-error {
+            color: #721c24;
+        }
+        
+        .log-success {
+            color: #155724;
+        }
+        
+        .log-warning {
+            color: #856404;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.9em;
+        }
+        
+        .btn-primary {
+            background-color: #3DDC84;
+            border-color: #3DDC84;
+            color: #000;
+        }
+        
+        .btn-primary:hover {
+            background-color: #32C078;
+            border-color: #32C078;
+            color: #000;
+        }
+        
+        .file-card {
+            margin-bottom: 15px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .file-card .card-header {
+            background-color: #f0f3f9;
+            font-weight: 600;
+            padding: 10px 15px;
+        }
+        
+        .file-card .card-body {
+            padding: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .file-content {
+            padding: 15px;
+        }
+        
+        .tab-content {
+            padding-top: 20px;
+        }
+        
+        .file-explorer {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        
+        .file-tree-item {
+            padding: 5px 0;
+            cursor: pointer;
+        }
+        
+        .file-tree-item:hover {
+            background-color: #f0f3f9;
+        }
+        
+        .file-tree-folder {
+            font-weight: 600;
+        }
+        
+        .file-tree-file {
+            padding-left: 20px;
+        }
+        
+        .android-logo {
+            display: inline-block;
+            vertical-align: middle;
+            height: 40px;
+            margin-right: 15px;
+        }
+    </style>
+
+    <style>
+        .log-info { color: #0c5460; }
+        .log-error { color: #721c24; }
+        .log-success { color: #155724; }
+        .log-warning { color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Logs:</h3>
+        <div class="log-container" id="log-container" style="height: 250px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 20px; font-family: 'Courier New', monospace;"></div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="header">
+            <h1>
+                <svg class="android-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path fill="#3DDC84" d="M16.61 15.15a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM9.61 15.15a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM16.4 9.22l1.92-3.32c.11-.2.04-.45-.15-.56-.18-.11-.41-.04-.53.15l-1.97 3.41a12.19 12.19 0 0 0-7.34 0L6.36 5.49c-.11-.19-.35-.26-.53-.15a.41.41 0 0 0-.15.56l1.92 3.32c-2.58 1.33-4.32 3.86-4.32 6.75h17.12c0-2.89-1.74-5.42-4.32-6.75zM2.53 17.42a.47.47 0 0 0-.46.47V20a.47.47 0 0 0 .94 0v-2.11c0-.25-.21-.47-.48-.47zm18.94 0c-.25 0-.47.2-.47.47V20a.47.47 0 0 0 .94 0v-2.11c0-.25-.21-.47-.47-.47zm-18 .94h16.06v2.82c0 .41-.33.75-.75.75h-.56v2.11c0 .81-.68 1.41-1.41 1.41-.8 0-1.4-.6-1.4-1.41V22H8.59v2.11c0 .81-.6 1.41-1.4 1.41-.73 0-1.42-.6-1.42-1.41V22h-.56a.75.75 0 0 1-.75-.75v-2.82-.07z"/>
+                </svg>
+                Agent Développeur Android
+            </h1>
+            <p class="lead">Solutions Android complètes, robustes et prêtes à l'emploi</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-section">
+                    <form id="androidRequestForm">
+                        <div class="form-group">
+                            <label for="project-name">Nom du Projet:</label>
+                            <input type="text" class="form-control" id="project-name" placeholder="MonProjetAndroid">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-specs">Description du Projet:</label>
+                            <textarea class="form-control" id="project-specs" rows="10" placeholder="Décrivez en détail ce que votre application Android devrait faire, les fonctionnalités attendues, et tout contexte pertinent..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-requirements">Exigences Techniques (optionnel):</label>
+                            <textarea class="form-control" id="project-requirements" rows="5" placeholder="Spécifiez les contraintes techniques, les bibliothèques à utiliser, les patrons de conception, etc."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" id="submit-button">
+                            Générer Projet Android
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="log-section mt-4">
+                    <h4>Logs:</h4>
+                    <div class="log-container" id="log-container"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="loading" id="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p>Génération du projet Android en cours, veuillez patienter...</p>
+                </div>
+                
+                <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab" aria-controls="files" aria-selected="true">Fichiers Générés</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis" type="button" role="tab" aria-controls="analysis" aria-selected="false">Analyse du Code</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="resultTabsContent">
+                    <div class="tab-pane fade show active" id="files" role="tabpanel" aria-labelledby="files-tab">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h5 class="mt-3">Explorateur de Fichiers</h5>
+                                <div class="file-explorer" id="file-explorer">
+                                    <p class="text-muted">Les fichiers générés s'afficheront ici...</p>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <h5 class="mt-3">Contenu du Fichier</h5>
+                                <div class="file-content-viewer" id="file-content-viewer">
+                                    <p class="text-muted">Sélectionnez un fichier pour afficher son contenu...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="analysis" role="tabpanel" aria-labelledby="analysis-tab">
+                        <div class="markdown-content mt-3" id="analysis-content">
+                            <p class="text-muted">L'analyse du code s'affichera ici...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+    
+    // Gestionnaire d'événements pour les logs
+    socket.on('log', function(data) {
+        console.log('Log reçu:', data.type, data.message);
+        addLog(data.type, data.message);
+    });
+    
+    // Au moment de la connexion, demander les logs précédents
+    socket.on('connect', function() {
+        console.log('Connexion Socket.IO établie');
+        socket.emit('request_logs');
+    });
+    
+    // Fonction pour ajouter un log
+    function addLog(type, message) {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error("Élément 'log-container' non trouvé");
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-${type}`;
+        logEntry.textContent = message;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+            const logContainer = document.getElementById('log-container');
+            const loading = document.getElementById('loading');
+            const form = document.getElementById('androidRequestForm');
+            const submitButton = document.getElementById('submit-button');
+            const fileExplorer = document.getElementById('file-explorer');
+            const fileContentViewer = document.getElementById('file-content-viewer');
+            const analysisContent = document.getElementById('analysis-content');
+            
+            let generatedFiles = [];
+            let projectDir = '';
+            let filesContent = {};
+            
+            // Fonction pour ajouter un log
+            function addLog(type, message) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-${type}`;
+                logEntry.textContent = message;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Formatage Markdown avec coloration syntaxique
+            function formatMarkdown(markdown) {
+                marked.setOptions({
+                    highlight: function(code, lang) {
+                        if (lang && hljs.getLanguage(lang)) {
+                            return hljs.highlight(code, { language: lang }).value;
+                        } else {
+                            return hljs.highlightAuto(code).value;
+                        }
+                    }
+                });
+                
+                const formattedMarkdown = marked.parse(markdown);
+                return formattedMarkdown;
+            }
+            
+            // Mise à jour de l'explorateur de fichiers
+            function updateFileExplorer(files, dir, content = {}) {
+                if (!files || files.length === 0) {
+                    fileExplorer.innerHTML = '<p class="text-muted">Aucun fichier généré...</p>';
+                    return;
+                }
+                
+                fileExplorer.innerHTML = '';
+                filesContent = content;
+                
+                // Créer une structure d'arborescence des fichiers
+                const fileItems = files.map(filePath => {
+                    const fileName = filePath.split('/').pop();
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-tree-item file-tree-file';
+                    fileItem.setAttribute('data-path', filePath);
+                    fileItem.setAttribute('data-name', fileName);
+                    fileItem.innerHTML = `<i class="bi bi-file-earmark-code"></i> ${fileName}`;
+                    
+                    // Ajouter l'event listener
+                    fileItem.addEventListener('click', function() {
+                        showFileContent(filePath, fileName);
+                    });
+                    
+                    return fileItem;
+                });
+                
+                // Ajouter tous les fichiers à l'explorateur
+                fileItems.forEach(item => {
+                    fileExplorer.appendChild(item);
+                });
+                
+                // Sélectionner le premier fichier par défaut
+                if (fileItems.length > 0) {
+                    fileItems[0].click();
+                }
+            }
+            
+            // Afficher le contenu d'un fichier
+            function showFileContent(filePath, fileName) {
+                // Déterminer l'extension du fichier
+                const fileExtension = fileName.split('.').pop().toLowerCase();
+                let language;
+                
+                switch (fileExtension) {
+                    case 'kt':
+                        language = 'kotlin';
+                        break;
+                    case 'java':
+                        language = 'java';
+                        break;
+                    case 'xml':
+                        language = 'xml';
+                        break;
+                    case 'json':
+                        language = 'json';
+                        break;
+                    case 'md':
+                        language = 'markdown';
+                        break;
+                    case 'txt':
+                        language = 'plaintext';
+                        break;
+                    default:
+                        language = 'plaintext';
+                }
+                
+                // Récupérer le contenu du fichier
+                let fileContent = '';
+                
+                // Si le contenu est disponible dans filesContent, l'utiliser
+                if (filesContent && filesContent[fileName]) {
+                    fileContent = filesContent[fileName];
+                } else {
+                    // Sinon, afficher un message indiquant que le contenu n'est pas disponible
+                    fileContent = `// Contenu du fichier ${fileName} non disponible.\n// Utilisez l'API pour obtenir le contenu.`;
+                }
+                
+                // Afficher le contenu avec la coloration syntaxique
+                if (language === 'markdown') {
+                    fileContentViewer.innerHTML = formatMarkdown(fileContent);
+                } else {
+                    fileContentViewer.innerHTML = `<pre><code class="language-${language}">${fileContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
+                    document.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+                }
+            }
+            
+            // Écouter les événements de log du serveur
+            socket.on('log', function(data) {
+                addLog(data.type, data.message);
+            });
+            
+            // Écouter l'événement de début de chargement
+            socket.on('loading_start', function() {
+                loading.style.display = 'block';
+                submitButton.disabled = true;
+            });
+            
+            // Écouter l'événement de fin de chargement
+            socket.on('loading_end', function() {
+                loading.style.display = 'none';
+                submitButton.disabled = false;
+            });
+            
+            // Écouter la fin de génération Android
+            socket.on('android_complete', function(data) {
+                addLog('success', `Projet Android généré dans ${data.project_dir}`);
+                generatedFiles = data.files;
+                projectDir = data.project_dir;
+                updateFileExplorer(data.files, data.project_dir);
+            });
+            
+            // Soumission du formulaire
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const projectName = document.getElementById('project-name').value || 'android-project';
+                const projectSpecs = document.getElementById('project-specs').value;
+                const projectRequirements = document.getElementById('project-requirements').value;
+                
+                if (!projectSpecs) {
+                    addLog('error', 'Veuillez décrire le projet Android');
+                    return;
+                }
+                
+                // Réinitialiser l'interface
+                logContainer.innerHTML = '';
+                fileExplorer.innerHTML = '<p class="text-muted">Les fichiers générés s\'afficheront ici...</p>';
+                fileContentViewer.innerHTML = '<p class="text-muted">Sélectionnez un fichier pour afficher son contenu...</p>';
+                analysisContent.innerHTML = '<p class="text-muted">L\'analyse du code s\'affichera ici...</p>';
+                
+                // Envoyer la requête au serveur
+                submitButton.disabled = true;
+                addLog('info', 'Génération du projet Android...');
+                
+                fetch('/android_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_name: projectName,
+                        specs: projectSpecs,
+                        requirements: projectRequirements || null
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Projet Android généré dans ${data.project_dir}`);
+                        generatedFiles = data.files;
+                        projectDir = data.project_dir;
+                        
+                        // Récupérer le contenu des fichiers pour l'affichage
+                        fetch('/code_request', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                project_name: projectName,
+                                specs: projectSpecs,
+                                requirements: projectRequirements || null
+                            }),
+                        })
+                        .then(response => response.json())
+                        .then(detailedData => {
+                            if (!detailedData.error) {
+                                updateFileExplorer(detailedData.files, detailedData.project_dir, detailedData.files_content);
+                                
+                                // Mettre à jour l'onglet d'analyse
+                                if (detailedData.analysis) {
+                                    analysisContent.innerHTML = formatMarkdown(detailedData.analysis);
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erreur lors de la récupération du contenu:', error);
+                        });
+                    }
+                    submitButton.disabled = false;
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    console.error('Erreur:', error);
+                    submitButton.disabled = false;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
