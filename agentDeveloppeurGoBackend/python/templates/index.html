@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Développeur Go Backend</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/go.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/bash.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/json.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f7f9fc;
+        }
+        
+        .container-fluid {
+            max-width: 1400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .header img {
+            height: 60px;
+            margin-right: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Courier New', Courier, monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .response-container {
+            margin-top: 30px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        
+        .log-container {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .files-container {
+            max-height: 600px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+        }
+        
+        .file-item {
+            background-color: white;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        
+        .file-header {
+            background-color: #f1f1f1;
+            padding: 8px 15px;
+            font-weight: 600;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-content {
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .file-content.collapsed {
+            display: none;
+        }
+        
+        .toggle-button {
+            background-color: transparent;
+            border: none;
+            font-size: 0.9em;
+            color: #6c757d;
+            cursor: pointer;
+        }
+        
+        .log-info {
+            color: #0c5460;
+        }
+        
+        .log-error {
+            color: #721c24;
+        }
+        
+        .log-success {
+            color: #155724;
+        }
+        
+        .log-warning {
+            color: #856404;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 0;
+        }
+        
+        code {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.9em;
+        }
+        
+        .btn-primary {
+            background-color: #00ACD7;
+            border-color: #00ACD7;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0098C0;
+            border-color: #0098C0;
+        }
+        
+        .workflow-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .workflow-step {
+            flex: 0 0 200px;
+            text-align: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            position: relative;
+            margin: 0 10px;
+        }
+        
+        .workflow-step.active {
+            background-color: #e2f0d9;
+            border-color: #c6e0b4;
+        }
+        
+        .workflow-step.completed {
+            background-color: #d9ead3;
+            border-color: #b6d7a8;
+        }
+        
+        .workflow-step:not(:last-child)::after {
+            content: "→";
+            position: absolute;
+            right: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            color: #555;
+        }
+        
+        .workflow-step h5 {
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .workflow-step p {
+            margin-bottom: 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .copy-button {
+            padding: 3px 8px;
+            font-size: 0.8em;
+            margin-left: 8px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .copy-button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .project-info {
+            background-color: #e9f7fe;
+            border: 1px solid #d0e8f6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .project-info p {
+            margin-bottom: 5px;
+        }
+        
+        .project-path {
+            font-family: monospace;
+            background-color: #f5f5f5;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .go-feature {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .go-feature h5 {
+            color: #00ACD7;
+            margin-bottom: 10px;
+        }
+        
+        .go-logo {
+            height: 60px;
+            margin-right: 10px;
+        }
+    </style>
+
+    <style>
+        .log-info { color: #0c5460; }
+        .log-error { color: #721c24; }
+        .log-success { color: #155724; }
+        .log-warning { color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Logs:</h3>
+        <div class="log-container" id="log-container" style="height: 250px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 20px; font-family: 'Courier New', monospace;"></div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="header">
+            <h1>
+                <svg height="60" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 205.4 76.7" style="vertical-align: middle; margin-right: 10px;">
+                    <path d="M15.5 23.2c-.4 0-.5-.2-.3-.5l2.1-2.7c.2-.3.7-.5 1.1-.5h35.7c.4 0 .5.3.3.6l-1.7 2.6c-.2.3-.7.6-1 .6L15.5 23.2zM.4 32.4c-.4 0-.5-.2-.3-.5l2.1-2.7c.2-.3.7-.5 1.1-.5h45.6c.4 0 .6.3.5.6l-.8 2.4c-.1.4-.5.6-.9.6L.4 32.4zM24.7 41.6c-.4 0-.5-.3-.3-.6l1.4-2.5c.2-.3.6-.6 1-.6h20c.4 0 .6.3.6.7l-.2 2.4c0 .4-.4.7-.7.7l-21.8-.1z" fill="#00acd7"/>
+                    <path d="M128.4 21.4c-6.3 1.6-10.6 2.8-16.8 4.4-1.5.4-1.6.5-2.9-1-1.5-1.7-2.6-2.8-4.7-3.8-6.3-3.1-12.4-2.2-18.1 1.5-6.8 4.4-10.3 10.9-10.2 19 .1 8 5.6 14.6 13.5 15.7 6.8.9 12.5-1.5 17-6.6.9-1.1 1.7-2.3 2.7-3.7H90.5c-2.1 0-2.6-1.3-1.9-3 1.3-3.1 3.7-8.3 5.1-10.9.3-.6 1-1.6 2.5-1.6h36.4c-.2 2.7-.2 5.4-.6 8.1-1.1 7.2-3.8 13.8-8.2 19.6-7.2 9.5-16.6 15.4-28.5 17-9.8 1.3-18.9-.6-26.9-6.6-7.4-5.6-11.6-13-12.7-22.2-1.3-10.9 1.9-20.7 8.5-29.3C71.1 8.2 80.3 3.2 91.4 1.4c9.5-1.6 18.4 0 26.5 4.9 5.3 3.2 9.1 7.5 11.9 12.8.6 1 .2 1.5-.9 1.9-3.9 1.1-7.9 2.1-11.9 3.2z" fill="#00acd7"/>
+                    <path d="M161.5 76.7c-9.1-.2-17.4-2.8-24.4-8.8-5.9-5.1-9.6-11.6-10.8-19.3-1.8-11.3 1.3-21.3 8.1-30.2 7.3-9.6 16.1-14.6 28-16.7 10.2-1.8 19.8-.8 28.5 5.1 7.9 5.4 12.8 12.7 14.1 22.3 1.7 13.5-2.2 24.5-11.5 33.9-6.6 6.7-14.7 10.9-24 12.8-2.7.5-5.4.6-8 .9zm23.8-40.4c-.1-1.3-.1-2.3-.3-3.3-1.8-9.9-10.9-15.5-20.4-13.3-9.3 2.1-15.3 8-17.5 17.4-1.8 7.8 2 15.7 9.2 18.9 5.5 2.4 11 2.1 16.3-.6 7.9-4.1 12.2-10.5 12.7-19.1z" fill="#00acd7"/>
+                </svg>
+                Agent Développeur Go Backend
+            </h1>
+            <p class="lead">Génération de code Go backend avec AWS Claude</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-12 mb-4">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="go-feature">
+                            <h5>Structure Optimisée</h5>
+                            <p>Respecte la structure standard des projets Go (cmd, pkg, internal)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="go-feature">
+                            <h5>Code Idiomatique</h5>
+                            <p>Code Go idiomatique suivant les meilleures pratiques</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="go-feature">
+                            <h5>Tests Unitaires</h5>
+                            <p>Tests unitaires avec le package testing</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="go-feature">
+                            <h5>Gestion des Erreurs</h5>
+                            <p>Gestion d'erreurs explicite et robuste</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-5">
+                <div class="form-section">
+                    <form id="goCodeRequestForm">
+                        <div class="form-group">
+                            <label for="project-name">Nom du Projet:</label>
+                            <input type="text" class="form-control" id="project-name" placeholder="Nom du projet (ex: api-service)">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-specs">Spécifications du Projet:</label>
+                            <textarea class="form-control" id="project-specs" rows="8" placeholder="Décrivez en détail le projet backend Go et ses fonctionnalités..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="technical-requirements">Exigences Techniques (optionnel):</label>
+                            <textarea class="form-control" id="technical-requirements" rows="4" placeholder="Framework, bibliothèques, API, base de données..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" id="submit-button">Générer le Code Go</button>
+                    </form>
+                </div>
+                
+                <div class="log-section mt-4">
+                    <h4>Logs:</h4>
+                    <div class="log-container" id="log-container"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-7">
+                <div class="workflow-container">
+                    <div class="workflow-step" id="step-structure">
+                        <h5>Structure</h5>
+                        <p>Création de la structure du projet</p>
+                    </div>
+                    <div class="workflow-step" id="step-code">
+                        <h5>Code</h5>
+                        <p>Génération des fichiers Go</p>
+                    </div>
+                    <div class="workflow-step" id="step-validation">
+                        <h5>Validation</h5>
+                        <p>Vérification du code</p>
+                    </div>
+                    <div class="workflow-step" id="step-dependencies">
+                        <h5>Dépendances</h5>
+                        <p>Gestion des dépendances</p>
+                    </div>
+                </div>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p>Génération du code Go en cours, veuillez patienter...</p>
+                </div>
+                
+                <div class="project-info" id="project-info" style="display: none;">
+                    <h4>Informations sur le Projet Go</h4>
+                    <p><strong>Répertoire:</strong> <span class="project-path" id="project-path"></span></p>
+                    <p><strong>Nombre de fichiers:</strong> <span id="files-count">0</span></p>
+                    <div class="mt-3">
+                        <h5>Comment exécuter le projet:</h5>
+                        <pre><code class="language-bash">cd <span id="project-path-cmd"></span>
+go mod tidy
+go run cmd/<span id="main-file">main.go</span></code></pre>
+                    </div>
+                </div>
+                
+                <div class="response-container" id="files-container" style="display: none;">
+                    <h4>Fichiers Générés:</h4>
+                    <div class="files-list" id="files-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+    
+    // Gestionnaire d'événements pour les logs
+    socket.on('log', function(data) {
+        console.log('Log reçu:', data.type, data.message);
+        addLog(data.type, data.message);
+    });
+    
+    // Au moment de la connexion, demander les logs précédents
+    socket.on('connect', function() {
+        console.log('Connexion Socket.IO établie');
+        socket.emit('request_logs');
+    });
+    
+    // Fonction pour ajouter un log
+    function addLog(type, message) {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error("Élément 'log-container' non trouvé");
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-${type}`;
+        logEntry.textContent = message;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+            const logContainer = document.getElementById('log-container');
+            const filesContainer = document.getElementById('files-container');
+            const filesList = document.getElementById('files-list');
+            const loading = document.getElementById('loading');
+            const form = document.getElementById('goCodeRequestForm');
+            const submitButton = document.getElementById('submit-button');
+            const projectInfo = document.getElementById('project-info');
+            const projectPath = document.getElementById('project-path');
+            const projectPathCmd = document.getElementById('project-path-cmd');
+            const filesCount = document.getElementById('files-count');
+            const mainFile = document.getElementById('main-file');
+            
+            // Référence aux étapes du workflow
+            const stepStructure = document.getElementById('step-structure');
+            const stepCode = document.getElementById('step-code');
+            const stepValidation = document.getElementById('step-validation');
+            const stepDependencies = document.getElementById('step-dependencies');
+            
+            // Fonction pour ajouter un log
+            function addLog(type, message) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-${type}`;
+                logEntry.textContent = message;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Fonction pour copier du texte dans le presse-papier
+            function copyToClipboard(text) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            
+            // Écouter les événements de log du serveur
+            socket.on('log', function(data) {
+                addLog(data.type, data.message);
+            });
+            
+            // Écouter l'événement de début de chargement
+            socket.on('loading_start', function() {
+                loading.style.display = 'block';
+                submitButton.disabled = true;
+            });
+            
+            // Écouter l'événement de fin de chargement
+            socket.on('loading_end', function() {
+                loading.style.display = 'none';
+                submitButton.disabled = false;
+            });
+            
+            // Mise à jour du répertoire du projet
+            socket.on('project_dir_update', function(data) {
+                projectInfo.style.display = 'block';
+                projectPath.textContent = data.project_dir;
+                projectPathCmd.textContent = data.project_dir;
+                
+                // Déterminer le nom du projet à partir du chemin
+                const projectName = data.project_dir.split('/').pop();
+                mainFile.textContent = projectName;
+                
+                stepStructure.classList.add('completed');
+                stepCode.classList.add('active');
+            });
+            
+            // Mise à jour du code généré
+            socket.on('code_update', function(data) {
+                filesContainer.style.display = 'block';
+                
+                // Affichage du nombre de fichiers
+                const fileInfos = data.code.files || [];
+                filesCount.textContent = fileInfos.length;
+                
+                // Recherche du main.go pour l'exemple d'exécution
+                for (const file of fileInfos) {
+                    if (file.file_path.includes('main.go') || file.file_path.includes('cmd/')) {
+                        mainFile.textContent = file.file_path;
+                        break;
+                    }
+                }
+                
+                // Affichage des fichiers
+                filesList.innerHTML = '';
+                fileInfos.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    // Création de l'en-tête du fichier
+                    const fileHeader = document.createElement('div');
+                    fileHeader.className = 'file-header';
+                    
+                    const fileName = document.createElement('span');
+                    fileName.textContent = file.file_path;
+                    
+                    const buttonGroup = document.createElement('div');
+                    
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'copy-button';
+                    copyButton.textContent = 'Copier';
+                    copyButton.onclick = function() {
+                        copyToClipboard(file.content);
+                        copyButton.textContent = 'Copié!';
+                        setTimeout(() => {
+                            copyButton.textContent = 'Copier';
+                        }, 2000);
+                    };
+                    
+                    const toggleButton = document.createElement('button');
+                    toggleButton.className = 'toggle-button';
+                    toggleButton.textContent = 'Masquer';
+                    toggleButton.onclick = function() {
+                        const content = fileItem.querySelector('.file-content');
+                        content.classList.toggle('collapsed');
+                        toggleButton.textContent = content.classList.contains('collapsed') ? 'Afficher' : 'Masquer';
+                    };
+                    
+                    buttonGroup.appendChild(copyButton);
+                    buttonGroup.appendChild(toggleButton);
+                    
+                    fileHeader.appendChild(fileName);
+                    fileHeader.appendChild(buttonGroup);
+                    
+                    // Création du contenu du fichier
+                    const fileContent = document.createElement('div');
+                    fileContent.className = 'file-content';
+                    
+                    const pre = document.createElement('pre');
+                    const code = document.createElement('code');
+                    code.className = 'language-go';
+                    code.textContent = file.content;
+                    
+                    pre.appendChild(code);
+                    fileContent.appendChild(pre);
+                    
+                    fileItem.appendChild(fileHeader);
+                    fileItem.appendChild(fileContent);
+                    filesList.appendChild(fileItem);
+                });
+                
+                // Appliquer la coloration syntaxique
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+                
+                stepCode.classList.remove('active');
+                stepCode.classList.add('completed');
+                stepValidation.classList.add('active');
+                
+                // Après un court délai pour l'animation, marquer la validation comme terminée
+                setTimeout(() => {
+                    stepValidation.classList.remove('active');
+                    stepValidation.classList.add('completed');
+                    stepDependencies.classList.add('active');
+                    
+                    // Après un autre délai, marquer les dépendances comme terminées
+                    setTimeout(() => {
+                        stepDependencies.classList.remove('active');
+                        stepDependencies.classList.add('completed');
+                    }, 1000);
+                }, 1000);
+            });
+            
+            // Attente de confirmation utilisateur
+            socket.on('wait_for_user_action', function() {
+                const confirmButton = document.createElement('button');
+                confirmButton.className = 'btn btn-success mt-2';
+                confirmButton.textContent = 'Continuer';
+                confirmButton.onclick = function() {
+                    socket.emit('user_action_done');
+                    confirmButton.remove();
+                };
+                logContainer.appendChild(confirmButton);
+            });
+            
+            // Projet complet
+            socket.on('end', function() {
+                addLog('success', 'Génération du code Go terminée!');
+                submitButton.disabled = false;
+            });
+            
+            // Soumission du formulaire
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const projectName = document.getElementById('project-name').value || 'go-project';
+                const projectSpecs = document.getElementById('project-specs').value;
+                const technicalRequirements = document.getElementById('technical-requirements').value;
+                
+                if (!projectSpecs) {
+                    addLog('error', 'Veuillez fournir les spécifications du projet');
+                    return;
+                }
+                
+                // Réinitialiser l'interface
+                logContainer.innerHTML = '';
+                filesList.innerHTML = '';
+                filesContainer.style.display = 'none';
+                projectInfo.style.display = 'none';
+                
+                // Réinitialiser le workflow
+                stepStructure.classList.remove('active', 'completed');
+                stepCode.classList.remove('active', 'completed');
+                stepValidation.classList.remove('active', 'completed');
+                stepDependencies.classList.remove('active', 'completed');
+                
+                // Activer la première étape
+                stepStructure.classList.add('active');
+                
+                // Envoyer la requête au serveur
+                submitButton.disabled = true;
+                addLog('info', 'Lancement de la génération de code Go...');
+                
+                fetch('/go_code_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_name: projectName,
+                        specs: projectSpecs,
+                        requirements: technicalRequirements
+                    }),
+                })
+                .then(response => response.json())
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    console.error('Erreur:', error);
+                    submitButton.disabled = false;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
