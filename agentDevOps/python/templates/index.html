@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent DevOps CI/CD</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/yaml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/dockerfile.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/json.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f7f9fc;
+        }
+        
+        .container-fluid {
+            max-width: 1400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Courier New', Courier, monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .section-container {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        
+        .log-container {
+            height: 300px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-info {
+            color: #0c5460;
+        }
+        
+        .log-error {
+            color: #721c24;
+        }
+        
+        .log-success {
+            color: #155724;
+        }
+        
+        .log-warning {
+            color: #856404;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.9em;
+        }
+        
+        .btn-primary {
+            background-color: #4a6bdf;
+            border-color: #4a6bdf;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3952b3;
+            border-color: #3952b3;
+        }
+        
+        .nav-pills .nav-link.active {
+            background-color: #4a6bdf;
+        }
+        
+        .file-explorer {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+        }
+        
+        .file-item {
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            cursor: pointer;
+        }
+        
+        .file-item:hover {
+            background-color: #e9ecef;
+        }
+        
+        .file-item.active {
+            background-color: #e2f0d9;
+        }
+        
+        .file-content {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+        }
+        
+        .pipeline-visual {
+            margin: 20px 0;
+            overflow-x: auto;
+            padding: 20px 0;
+        }
+        
+        .pipeline-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-width: 600px;
+        }
+        
+        .pipeline-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 10px;
+            position: relative;
+        }
+        
+        .pipeline-node {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .pipeline-node i {
+            font-size: 24px;
+            color: #888;
+        }
+        
+        .pipeline-node.active {
+            background-color: #e2f0d9;
+            border-color: #c6e0b4;
+        }
+        
+        .pipeline-node.active i {
+            color: #2d8a39;
+        }
+        
+        .pipeline-node.success {
+            background-color: #d9ead3;
+            border-color: #b6d7a8;
+        }
+        
+        .pipeline-node.success i {
+            color: #2d8a39;
+        }
+        
+        .pipeline-node.error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        
+        .pipeline-node.error i {
+            color: #dc3545;
+        }
+        
+        .pipeline-node.warning {
+            background-color: #fff3cd;
+            border-color: #ffecb5;
+        }
+        
+        .pipeline-node.warning i {
+            color: #ffc107;
+        }
+        
+        .pipeline-connector {
+            height: 2px;
+            width: 100px;
+            background-color: #e9ecef;
+            position: absolute;
+            top: 30px;
+            left: -50px;
+            z-index: -1;
+        }
+        
+        .pipeline-text {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .environment-status {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+        }
+        
+        .env-badge {
+            margin-right: 10px;
+            font-weight: 600;
+        }
+        
+        .badge-dev {
+            background-color: #d9ead3;
+            color: #2d8a39;
+        }
+        
+        .badge-staging {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .badge-prod {
+            background-color: #cfe2ff;
+            color: #0d6efd;
+        }
+        
+        .action-buttons {
+            margin-bottom: 20px;
+        }
+        
+        .action-buttons .btn {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .badge-version {
+            background-color: #e9ecef;
+            color: #495057;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+
+    <style>
+        .log-info { color: #0c5460; }
+        .log-error { color: #721c24; }
+        .log-success { color: #155724; }
+        .log-warning { color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Logs:</h3>
+        <div class="log-container" id="log-container" style="height: 250px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 20px; font-family: 'Courier New', monospace;"></div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="header">
+            <h1>Agent DevOps CI/CD</h1>
+            <p class="lead">Génération et gestion de configurations DevOps et pipelines CI/CD</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-pills card-header-pills">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="request-tab" data-bs-toggle="pill" href="#request-content">Configurer</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="cicd-tab" data-bs-toggle="pill" href="#cicd-content">CI/CD</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="request-content">
+                                <form id="devopsRequestForm">
+                                    <div class="form-group">
+                                        <label for="project-name">Nom du Projet:</label>
+                                        <input type="text" class="form-control" id="project-name" placeholder="mon-projet">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="project-description">Description du Projet:</label>
+                                        <textarea class="form-control" id="project-description" rows="8" placeholder="Décrivez en détail le projet et les configurations DevOps souhaitées..."></textarea>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="config-type">Type de Configuration:</label>
+                                        <select class="form-control" id="config-type">
+                                            <option value="complete">Configuration complète</option>
+                                            <option value="docker">Docker uniquement</option>
+                                            <option value="ci_cd">CI/CD uniquement</option>
+                                            <option value="kubernetes">Kubernetes uniquement</option>
+                                            <option value="iac">Infrastructure as Code uniquement</option>
+                                            <option value="monitoring">Monitoring uniquement</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group" id="iac-type-group" style="display: none;">
+                                        <label for="iac-type">Type d'IaC:</label>
+                                        <select class="form-control" id="iac-type">
+                                            <option value="terraform">Terraform</option>
+                                            <option value="cloudformation">CloudFormation</option>
+                                            <option value="pulumi">Pulumi</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary mt-3" id="generate-button">
+                                        <i class="fas fa-cogs me-2"></i>Générer Configuration
+                                    </button>
+                                </form>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="cicd-content">
+                                <form id="cicdForm">
+                                    <div class="form-group">
+                                        <label for="cicd-project-name">Nom du Projet:</label>
+                                        <input type="text" class="form-control" id="cicd-project-name" placeholder="mon-projet">
+                                    </div>
+                                    
+                                    <div class="form-group mt-3">
+                                        <label for="cicd-action">Action:</label>
+                                        <select class="form-control" id="cicd-action">
+                                            <option value="status">Vérifier l'état</option>
+                                            <option value="run">Exécuter le pipeline</option>
+                                            <option value="deploy">Déployer</option>
+                                            <option value="rollback">Rollback</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group mt-3" id="environment-group">
+                                        <label for="environment">Environnement:</label>
+                                        <select class="form-control" id="environment">
+                                            <option value="dev">Développement</option>
+                                            <option value="staging">Staging</option>
+                                            <option value="prod">Production</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary mt-3" id="cicd-button">
+                                        <i class="fas fa-play me-2"></i>Exécuter
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="log-section mt-4">
+                    <h4>Logs:</h4>
+                    <div class="log-container" id="log-container"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="loading" id="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p>Traitement en cours, veuillez patienter...</p>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <ul class="nav nav-pills card-header-pills">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="files-tab" data-bs-toggle="pill" href="#files-content">Fichiers</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="pipeline-tab" data-bs-toggle="pill" href="#pipeline-content">Pipeline CI/CD</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="deploy-tab" data-bs-toggle="pill" href="#deploy-content">Déploiements</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="files-content">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h5>Explorateur de fichiers</h5>
+                                        <div class="file-explorer" id="file-explorer">
+                                            <p class="text-muted">Les fichiers générés s'afficheront ici...</p>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <h5>Contenu du fichier</h5>
+                                        <div class="file-content" id="file-content">
+                                            <p class="text-muted">Sélectionnez un fichier pour afficher son contenu...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="pipeline-content">
+                                <div class="pipeline-visual">
+                                    <h5>Pipeline CI/CD</h5>
+                                    <div class="pipeline-flow" id="pipeline-flow">
+                                        <div class="pipeline-step">
+                                            <div class="pipeline-node">
+                                                <i class="fas fa-code"></i>
+                                            </div>
+                                            <div class="pipeline-text">Build</div>
+                                        </div>
+                                        <div class="pipeline-step">
+                                            <div class="pipeline-connector"></div>
+                                            <div class="pipeline-node">
+                                                <i class="fas fa-vial"></i>
+                                            </div>
+                                            <div class="pipeline-text">Test</div>
+                                        </div>
+                                        <div class="pipeline-step">
+                                            <div class="pipeline-connector"></div>
+                                            <div class="pipeline-node">
+                                                <i class="fas fa-box"></i>
+                                            </div>
+                                            <div class="pipeline-text">Package</div>
+                                        </div>
+                                        <div class="pipeline-step">
+                                            <div class="pipeline-connector"></div>
+                                            <div class="pipeline-node">
+                                                <i class="fas fa-rocket"></i>
+                                            </div>
+                                            <div class="pipeline-text">Deploy</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary btn-sm" id="run-pipeline-btn">
+                                        <i class="fas fa-play me-1"></i>Exécuter
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm" id="check-status-btn">
+                                        <i class="fas fa-sync-alt me-1"></i>Actualiser
+                                    </button>
+                                </div>
+                                
+                                <div class="pipeline-details">
+                                    <h6>Dernière exécution:</h6>
+                                    <div id="last-run-details">
+                                        <p class="text-muted">Aucune exécution récente...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="deploy-content">
+                                <div class="environment-status" id="dev-env">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="badge bg-success env-badge">DEV</span>
+                                            <span class="badge-version" id="dev-version">Non déployé</span>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-primary btn-sm deploy-btn" data-env="dev">
+                                                <i class="fas fa-rocket me-1"></i>Déployer
+                                            </button>
+                                            <button class="btn btn-warning btn-sm rollback-btn" data-env="dev">
+                                                <i class="fas fa-undo me-1"></i>Rollback
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="environment-status mt-3" id="staging-env">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="badge bg-warning text-dark env-badge">STAGING</span>
+                                            <span class="badge-version" id="staging-version">Non déployé</span>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-primary btn-sm deploy-btn" data-env="staging">
+                                                <i class="fas fa-rocket me-1"></i>Déployer
+                                            </button>
+                                            <button class="btn btn-warning btn-sm rollback-btn" data-env="staging">
+                                                <i class="fas fa-undo me-1"></i>Rollback
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="environment-status mt-3" id="prod-env">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <span class="badge bg-primary env-badge">PROD</span>
+                                            <span class="badge-version" id="prod-version">Non déployé</span>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-primary btn-sm deploy-btn" data-env="prod">
+                                                <i class="fas fa-rocket me-1"></i>Déployer
+                                            </button>
+                                            <button class="btn btn-warning btn-sm rollback-btn" data-env="prod">
+                                                <i class="fas fa-undo me-1"></i>Rollback
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="deployment-history mt-4">
+                                    <h6>Historique des déploiements:</h6>
+                                    <div id="deployment-history">
+                                        <p class="text-muted">Aucun déploiement récent...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+    
+    // Gestionnaire d'événements pour les logs
+    socket.on('log', function(data) {
+        console.log('Log reçu:', data.type, data.message);
+        addLog(data.type, data.message);
+    });
+    
+    // Au moment de la connexion, demander les logs précédents
+    socket.on('connect', function() {
+        console.log('Connexion Socket.IO établie');
+        socket.emit('request_logs');
+    });
+    
+    // Fonction pour ajouter un log
+    function addLog(type, message) {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error("Élément 'log-container' non trouvé");
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-${type}`;
+        logEntry.textContent = message;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+            const logContainer = document.getElementById('log-container');
+            const loading = document.getElementById('loading');
+            const devopsForm = document.getElementById('devopsRequestForm');
+            const cicdForm = document.getElementById('cicdForm');
+            const generateButton = document.getElementById('generate-button');
+            const cicdButton = document.getElementById('cicd-button');
+            const fileExplorer = document.getElementById('file-explorer');
+            const fileContent = document.getElementById('file-content');
+            
+            // Référence aux éléments du pipeline
+            const pipelineFlow = document.getElementById('pipeline-flow');
+            const lastRunDetails = document.getElementById('last-run-details');
+            
+            // Gestion de l'affichage du type d'IaC
+            document.getElementById('config-type').addEventListener('change', function() {
+                document.getElementById('iac-type-group').style.display = 
+                    this.value === 'iac' ? 'block' : 'none';
+            });
+            
+            // Gestion de l'affichage des environnements
+            document.getElementById('cicd-action').addEventListener('change', function() {
+                document.getElementById('environment-group').style.display = 
+                    (this.value === 'deploy' || this.value === 'rollback') ? 'block' : 'none';
+            });
+            
+            // Fonction pour ajouter un log
+            function addLog(type, message) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-${type}`;
+                logEntry.textContent = message;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Écouter les événements de log du serveur
+            socket.on('log', function(data) {
+                addLog(data.type, data.message);
+            });
+            
+            // Écouter l'événement de début de chargement
+            socket.on('loading_start', function() {
+                loading.style.display = 'block';
+                generateButton.disabled = true;
+                cicdButton.disabled = true;
+            });
+            
+            // Écouter l'événement de fin de chargement
+            socket.on('loading_end', function() {
+                loading.style.display = 'none';
+                generateButton.disabled = false;
+                cicdButton.disabled = false;
+            });
+            
+            // Mise à jour quand les configurations DevOps sont générées
+            socket.on('devops_complete', function(data) {
+                addLog('success', `Configuration DevOps créée dans ${data.project_dir}`);
+                updateFileExplorer(data.files, data.project_dir);
+            });
+            
+            // Mise à jour de l'explorateur de fichiers
+            function updateFileExplorer(files, projectDir) {
+                if (!files || files.length === 0) {
+                    fileExplorer.innerHTML = '<p class="text-muted">Aucun fichier n\'a été généré...</p>';
+                    return;
+                }
+                
+                fileExplorer.innerHTML = '';
+                
+                // Organiser les fichiers par dossier
+                const fileTree = {};
+                files.forEach(file => {
+                    const parts = file.split('/');
+                    let current = fileTree;
+                    
+                    for (let i = 0; i < parts.length - 1; i++) {
+                        const part = parts[i];
+                        if (!current[part]) {
+                            current[part] = {};
+                        }
+                        current = current[part];
+                    }
+                    
+                    const fileName = parts[parts.length - 1];
+                    current[fileName] = { path: file, isFile: true };
+                });
+                
+                // Fonction récursive pour construire l'arborescence
+                function buildTreeHTML(node, path = '', level = 0) {
+                    let html = '';
+                    
+                    for (const [name, value] of Object.entries(node)) {
+                        const fullPath = path ? `${path}/${name}` : name;
+                        const indent = '&nbsp;'.repeat(level * 4);
+                        
+                        if (value.isFile) {
+                            html += `<div class="file-item" data-path="${fullPath}">
+                                ${indent}<i class="fas fa-file me-2"></i>${name}
+                            </div>`;
+                        } else {
+                            html += `<div class="folder">
+                                ${indent}<i class="fas fa-folder me-2"></i>${name}
+                            </div>`;
+                            html += buildTreeHTML(value, fullPath, level + 1);
+                        }
+                    }
+                    
+                    return html;
+                }
+                
+                fileExplorer.innerHTML = buildTreeHTML(fileTree);
+                
+                // Ajouter les gestionnaires d'événements aux fichiers
+                document.querySelectorAll('.file-item').forEach(item => {
+                    item.addEventListener('click', function() {
+                        document.querySelectorAll('.file-item').forEach(i => i.classList.remove('active'));
+                        this.classList.add('active');
+                        
+                        const filePath = this.getAttribute('data-path');
+                        fileContent.innerHTML = `<div class="text-center">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Chargement...</span>
+                            </div>
+                            <p>Chargement du contenu...</p>
+                        </div>`;
+                        
+                        // Simuler le chargement du contenu du fichier
+                        // Dans une implémentation réelle, vous feriez une requête au serveur
+                        setTimeout(() => {
+                            const extension = filePath.split('.').pop().toLowerCase();
+                            let language = '';
+                            
+                            switch (extension) {
+                                case 'yml':
+                                case 'yaml':
+                                    language = 'yaml';
+                                    break;
+                                case 'js':
+                                case 'jsx':
+                                    language = 'javascript';
+                                    break;
+                                case 'py':
+                                    language = 'python';
+                                    break;
+                                case 'json':
+                                    language = 'json';
+                                    break;
+                                case 'dockerfile':
+                                    language = 'dockerfile';
+                                    break;
+                                default:
+                                    language = 'plaintext';
+                            }
+                            
+                            // Contenu simulé du fichier
+                            const content = `# ${filePath}\n\n// Contenu du fichier ${filePath}\n// (Ceci est un contenu simulé pour la démonstration)`;
+                            
+                            fileContent.innerHTML = `<pre><code class="language-${language}">${content}</code></pre>`;
+                            
+                            document.querySelectorAll('pre code').forEach((block) => {
+                                hljs.highlightElement(block);
+                            });
+                        }, 500);
+                    });
+                });
+            }
+            
+            // Mise à jour de l'état du pipeline CI/CD
+            socket.on('pipeline_update', function(data) {
+                updatePipelineState(data);
+            });
+            
+            // Mise à jour complète du pipeline CI/CD
+            socket.on('pipeline_complete', function(data) {
+                addLog('success', `Pipeline ${data.run_id} complété avec statut: ${data.status}`);
+                updateLastRunDetails(data);
+            });
+            
+            // Mise à jour de l'état du déploiement
+            socket.on('deployment_update', function(data) {
+                updateDeploymentState(data);
+            });
+            
+            // Mise à jour complète du déploiement
+            socket.on('deployment_complete', function(data) {
+                addLog('success', `Déploiement ${data.deploy_id} vers ${data.environment} complété avec statut: ${data.status}`);
+                updateDeploymentVersion(data.environment, '1.0.0'); // Version factice
+            });
+            
+            // Mise à jour de l'état du rollback
+            socket.on('rollback_update', function(data) {
+                updateRollbackState(data);
+            });
+            
+            // Mise à jour complète du rollback
+            socket.on('rollback_complete', function(data) {
+                addLog('success', `Rollback ${data.rollback_id} sur ${data.environment} complété avec statut: ${data.status}`);
+                updateDeploymentVersion(data.environment, '0.9.0'); // Version factice
+            });
+            
+            // Fonction pour mettre à jour l'état du pipeline
+            function updatePipelineState(data) {
+                const pipelineNodes = pipelineFlow.querySelectorAll('.pipeline-node');
+                let stageIndex = 0;
+                
+                switch (data.stage) {
+                    case 'build':
+                        stageIndex = 0;
+                        break;
+                    case 'test':
+                        stageIndex = 1;
+                        break;
+                    case 'package':
+                        stageIndex = 2;
+                        break;
+                    case 'deploy-prep':
+                        stageIndex = 3;
+                        break;
+                }
+                
+                // Réinitialiser toutes les étapes
+                pipelineNodes.forEach(node => {
+                    node.className = 'pipeline-node';
+                });
+                
+                // Mettre à jour l'état actuel
+                if (data.status === 'running') {
+                    pipelineNodes[stageIndex].className = 'pipeline-node active';
+                } else if (data.status === 'success') {
+                    pipelineNodes[stageIndex].className = 'pipeline-node success';
+                } else if (data.status === 'error') {
+                    pipelineNodes[stageIndex].className = 'pipeline-node error';
+                }
+                
+                // Mettre à jour les étapes précédentes comme réussies
+                for (let i = 0; i < stageIndex; i++) {
+                    pipelineNodes[i].className = 'pipeline-node success';
+                }
+            }
+            
+            // Fonction pour mettre à jour les détails de la dernière exécution
+            function updateLastRunDetails(data) {
+                const timestamp = new Date().toLocaleString();
+                
+                lastRunDetails.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <strong>Run ID:</strong> ${data.run_id}
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Statut:</strong> <span class="badge bg-success">Succès</span></p>
+                        <p><strong>Date:</strong> ${timestamp}</p>
+                        <p><strong>Project:</strong> ${data.project_name}</p>
+                    </div>
+                </div>`;
+            }
+            
+            // Fonction pour mettre à jour l'état du déploiement
+            function updateDeploymentState(data) {
+                // Mettre à jour l'UI pour montrer l'état du déploiement
+                addLog('info', `Déploiement ${data.deploy_id}: étape '${data.stage}' - ${data.status}`);
+            }
+            
+            // Fonction pour mettre à jour l'état du rollback
+            function updateRollbackState(data) {
+                // Mettre à jour l'UI pour montrer l'état du rollback
+                addLog('info', `Rollback ${data.rollback_id}: étape '${data.stage}' - ${data.status}`);
+            }
+            
+            // Fonction pour mettre à jour la version déployée
+            function updateDeploymentVersion(environment, version) {
+                const versionBadge = document.getElementById(`${environment}-version`);
+                if (versionBadge) {
+                    versionBadge.textContent = `v${version}`;
+                }
+            }
+            
+            // Boutons pour les actions du pipeline
+            document.getElementById('run-pipeline-btn').addEventListener('click', function() {
+                const projectName = document.getElementById('cicd-project-name').value || 'default-project';
+                
+                fetch('/api/ci_cd_pipeline', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_name: projectName,
+                        action: 'run'
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    addLog('info', `Pipeline démarré: ${data.details.run_id}`);
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                });
+            });
+            
+            document.getElementById('check-status-btn').addEventListener('click', function() {
+                const projectName = document.getElementById('cicd-project-name').value || 'default-project';
+                
+                fetch('/api/ci_cd_pipeline', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_name: projectName,
+                        action: 'status'
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Mettre à jour l'état des environnements
+                    if (data.details.environments) {
+                        Object.entries(data.details.environments).forEach(([env, info]) => {
+                            updateDeploymentVersion(env, info.version);
+                        });
+                    }
+                    
+                    addLog('info', `État du pipeline vérifié: ${data.details.pipeline_state}`);
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                });
+            });
+            
+            // Boutons pour les déploiements
+            document.querySelectorAll('.deploy-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const env = this.getAttribute('data-env');
+                    const projectName = document.getElementById('cicd-project-name').value || 'default-project';
+                    
+                    fetch('/api/ci_cd_pipeline', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            project_name: projectName,
+                            action: 'deploy',
+                            environment: env
+                        }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        addLog('info', `Déploiement démarré vers ${env}: ${data.details.deploy_id}`);
+                    })
+                    .catch((error) => {
+                        addLog('error', `Erreur: ${error.message}`);
+                    });
+                });
+            });
+            
+            // Boutons pour les rollbacks
+            document.querySelectorAll('.rollback-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const env = this.getAttribute('data-env');
+                    const projectName = document.getElementById('cicd-project-name').value || 'default-project';
+                    
+                    fetch('/api/ci_cd_pipeline', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            project_name: projectName,
+                            action: 'rollback',
+                            environment: env
+                        }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        addLog('info', `Rollback démarré sur ${env}: ${data.details.rollback_id}`);
+                    })
+                    .catch((error) => {
+                        addLog('error', `Erreur: ${error.message}`);
+                    });
+                });
+            });
+            
+            // Soumission du formulaire DevOps
+            devopsForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const projectName = document.getElementById('project-name').value || 'devops-project';
+                const projectDescription = document.getElementById('project-description').value;
+                const configType = document.getElementById('config-type').value;
+                const iacType = document.getElementById('iac-type').value;
+                
+                if (!projectDescription) {
+                    addLog('error', 'Veuillez remplir la description du projet');
+                    return;
+                }
+                
+                // Réinitialiser l'interface
+                logContainer.innerHTML = '';
+                fileExplorer.innerHTML = '<p class="text-muted">Les fichiers générés s\'afficheront ici...</p>';
+                fileContent.innerHTML = '<p class="text-muted">Sélectionnez un fichier pour afficher son contenu...</p>';
+                
+                // Envoyer la requête au serveur
+                generateButton.disabled = true;
+                addLog('info', 'Génération de la configuration DevOps...');
+                
+                let requestBody = {
+                    project_name: projectName,
+                    specs: projectDescription,
+                    config_type: configType
+                };
+                
+                if (configType === 'iac') {
+                    requestBody.iac_type = iacType;
+                }
+                
+                fetch('/api/devops_config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Configuration générée: ${data.project_dir}`);
+                        updateFileExplorer(data.files, data.project_dir);
+                        
+                        // Mettre à jour le nom du projet dans l'onglet CI/CD
+                        document.getElementById('cicd-project-name').value = projectName;
+                    }
+                    generateButton.disabled = false;
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    console.error('Erreur:', error);
+                    generateButton.disabled = false;
+                });
+            });
+            
+            // Soumission du formulaire CI/CD
+            cicdForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const projectName = document.getElementById('cicd-project-name').value || 'devops-project';
+                const action = document.getElementById('cicd-action').value;
+                const environment = document.getElementById('environment').value;
+                
+                if (!projectName) {
+                    addLog('error', 'Veuillez remplir le nom du projet');
+                    return;
+                }
+                
+                // Envoyer la requête au serveur
+                cicdButton.disabled = true;
+                addLog('info', `Exécution de l'action CI/CD: ${action}`);
+                
+                fetch('/api/ci_cd_pipeline', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_name: projectName,
+                        action: action,
+                        environment: environment
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Action CI/CD (${action}) démarrée`);
+                        
+                        // Si l'action est "status", mettre à jour l'UI
+                        if (action === 'status' && data.details.environments) {
+                            Object.entries(data.details.environments).forEach(([env, info]) => {
+                                updateDeploymentVersion(env, info.version);
+                            });
+                        }
+                    }
+                    cicdButton.disabled = false;
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    console.error('Erreur:', error);
+                    cicdButton.disabled = false;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
