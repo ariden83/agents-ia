@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Machine Learning</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/json.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f7f9fc;
+        }
+        
+        .container-fluid {
+            max-width: 1400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 200px;
+            font-family: 'Courier New', Courier, monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .section-container {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        
+        .log-container {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-info {
+            color: #0c5460;
+        }
+        
+        .log-error {
+            color: #721c24;
+        }
+        
+        .log-success {
+            color: #155724;
+        }
+        
+        .log-warning {
+            color: #856404;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.9em;
+        }
+        
+        .btn-primary {
+            background-color: #4a6bdf;
+            border-color: #4a6bdf;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3952b3;
+            border-color: #3952b3;
+        }
+        
+        .file-card {
+            margin-bottom: 15px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .file-card .card-header {
+            background-color: #f0f3f9;
+            font-weight: 600;
+            padding: 10px 15px;
+        }
+        
+        .file-card .card-body {
+            padding: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .file-content {
+            padding: 15px;
+        }
+        
+        .tab-content {
+            padding-top: 20px;
+        }
+        
+        .model-preview {
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .chart-preview {
+            text-align: center;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .model-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .model-metrics {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        
+        .metric {
+            background-color: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .file-explorer {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        
+        .file-tree-item {
+            padding: 5px 0;
+            cursor: pointer;
+        }
+        
+        .file-tree-item:hover {
+            background-color: #f0f3f9;
+        }
+        
+        .file-tree-folder {
+            font-weight: 600;
+        }
+        
+        .file-tree-file {
+            padding-left: 20px;
+        }
+    </style>
+
+    <style>
+        .log-info { color: #0c5460; }
+        .log-error { color: #721c24; }
+        .log-success { color: #155724; }
+        .log-warning { color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Logs:</h3>
+        <div class="log-container" id="log-container" style="height: 250px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 20px; font-family: 'Courier New', monospace;"></div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="header">
+            <h1>Agent Machine Learning</h1>
+            <p class="lead">Génération de solutions ML complètes et prêtes à l'emploi</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-section">
+                    <form id="mlRequestForm">
+                        <div class="form-group">
+                            <label for="project-name">Nom du Projet:</label>
+                            <input type="text" class="form-control" id="project-name" placeholder="mon-projet-ml">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-specs">Description du Problème ML:</label>
+                            <textarea class="form-control" id="project-specs" rows="10" placeholder="Décrivez en détail le problème ML à résoudre, le type de données, les objectifs, et tout contexte pertinent..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" id="submit-button">
+                            <i class="bi bi-braces"></i> Générer Solution ML
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="log-section mt-4">
+                    <h4>Logs:</h4>
+                    <div class="log-container" id="log-container"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="loading" id="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p>Génération de la solution ML en cours, veuillez patienter...</p>
+                </div>
+                
+                <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab" aria-controls="files" aria-selected="true">Fichiers Générés</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis" type="button" role="tab" aria-controls="analysis" aria-selected="false">Analyse ML</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="models-tab" data-bs-toggle="tab" data-bs-target="#models" type="button" role="tab" aria-controls="models" aria-selected="false">Modèles</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="resultTabsContent">
+                    <div class="tab-pane fade show active" id="files" role="tabpanel" aria-labelledby="files-tab">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h5>Explorateur de Fichiers</h5>
+                                <div class="file-explorer" id="file-explorer">
+                                    <p class="text-muted">Les fichiers générés s'afficheront ici...</p>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <h5>Contenu du Fichier</h5>
+                                <div class="file-content-viewer" id="file-content-viewer">
+                                    <p class="text-muted">Sélectionnez un fichier pour afficher son contenu...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="analysis" role="tabpanel" aria-labelledby="analysis-tab">
+                        <div class="markdown-content" id="analysis-content">
+                            <p class="text-muted">L'analyse ML s'affichera ici...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="models" role="tabpanel" aria-labelledby="models-tab">
+                        <div class="models-container" id="models-container">
+                            <p class="text-muted">Aperçu des modèles générés...</p>
+                            
+                            <!-- Des exemples de modèles seront générés dynamiquement ici -->
+                            <div class="model-preview d-none">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <span class="model-name">Modèle de Classification</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-preview">
+                                            <img src="https://via.placeholder.com/600x300?text=Graphique+de+Performance" alt="Graphique de performance" class="img-fluid">
+                                        </div>
+                                        <div class="model-metrics">
+                                            <span class="metric">Précision: 0.92</span>
+                                            <span class="metric">Rappel: 0.88</span>
+                                            <span class="metric">F1-Score: 0.90</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+    
+    // Gestionnaire d'événements pour les logs
+    socket.on('log', function(data) {
+        console.log('Log reçu:', data.type, data.message);
+        addLog(data.type, data.message);
+    });
+    
+    // Au moment de la connexion, demander les logs précédents
+    socket.on('connect', function() {
+        console.log('Connexion Socket.IO établie');
+        socket.emit('request_logs');
+    });
+    
+    // Fonction pour ajouter un log
+    function addLog(type, message) {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error("Élément 'log-container' non trouvé");
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-${type}`;
+        logEntry.textContent = message;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+            const logContainer = document.getElementById('log-container');
+            const loading = document.getElementById('loading');
+            const form = document.getElementById('mlRequestForm');
+            const submitButton = document.getElementById('submit-button');
+            const fileExplorer = document.getElementById('file-explorer');
+            const fileContentViewer = document.getElementById('file-content-viewer');
+            const analysisContent = document.getElementById('analysis-content');
+            
+            let generatedFiles = [];
+            let projectDir = '';
+            
+            // Fonction pour ajouter un log
+            function addLog(type, message) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-${type}`;
+                logEntry.textContent = message;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Formatage Markdown avec coloration syntaxique
+            function formatMarkdown(markdown) {
+                const formattedMarkdown = marked.parse(markdown);
+                return formattedMarkdown;
+            }
+            
+            // Mise à jour de l'explorateur de fichiers
+            function updateFileExplorer(files, dir) {
+                if (!files || files.length === 0) {
+                    fileExplorer.innerHTML = '<p class="text-muted">Aucun fichier généré...</p>';
+                    return;
+                }
+                
+                fileExplorer.innerHTML = '';
+                
+                // Créer une structure d'arborescence des fichiers
+                const folderStructure = {};
+                
+                files.forEach(filePath => {
+                    // Convertir les chemins absolus en chemins relatifs
+                    const relativePath = filePath.replace(dir + '/', '');
+                    const parts = relativePath.split('/');
+                    
+                    let current = folderStructure;
+                    for (let i = 0; i < parts.length - 1; i++) {
+                        const part = parts[i];
+                        if (!current[part]) {
+                            current[part] = {};
+                        }
+                        current = current[part];
+                    }
+                    
+                    const fileName = parts[parts.length - 1];
+                    current[fileName] = { path: filePath, isFile: true };
+                });
+                
+                // Créer l'arborescence HTML
+                function buildTreeHTML(node, path = '', level = 0) {
+                    const items = [];
+                    const indent = '&nbsp;'.repeat(level * 4);
+                    
+                    // Traiter d'abord les dossiers
+                    for (const [name, value] of Object.entries(node)) {
+                        if (!value.isFile) {
+                            const folderPath = path ? `${path}/${name}` : name;
+                            items.push(`<div class="file-tree-item file-tree-folder">
+                                ${indent}<i class="bi bi-folder"></i> ${name}
+                            </div>`);
+                            items.push(buildTreeHTML(value, folderPath, level + 1));
+                        }
+                    }
+                    
+                    // Puis les fichiers
+                    for (const [name, value] of Object.entries(node)) {
+                        if (value.isFile) {
+                            items.push(`<div class="file-tree-item file-tree-file" data-path="${value.path}">
+                                ${indent}<i class="bi bi-file-earmark-code"></i> ${name}
+                            </div>`);
+                        }
+                    }
+                    
+                    return items.join('');
+                }
+                
+                fileExplorer.innerHTML = buildTreeHTML(folderStructure);
+                
+                // Ajouter les event listeners
+                document.querySelectorAll('.file-tree-file').forEach(item => {
+                    item.addEventListener('click', function() {
+                        const filePath = this.getAttribute('data-path');
+                        showFileContent(filePath);
+                    });
+                });
+                
+                // Sélectionner le premier fichier par défaut
+                const firstFile = document.querySelector('.file-tree-file');
+                if (firstFile) {
+                    firstFile.click();
+                }
+            }
+            
+            // Afficher le contenu d'un fichier
+            function showFileContent(filePath) {
+                // Dans un cas réel, vous feriez une requête au serveur pour obtenir le contenu du fichier
+                // Ici nous simulons le contenu avec un message
+                
+                const fileName = filePath.split('/').pop();
+                const fileExtension = fileName.split('.').pop();
+                
+                fileContentViewer.innerHTML = `<div class="text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p>Chargement du contenu de ${fileName}...</p>
+                </div>`;
+                
+                // Simuler une requête pour obtenir le contenu du fichier
+                setTimeout(() => {
+                    let fileContent = "";
+                    
+                    if (fileName.endsWith('.py')) {
+                        fileContent = `# Fichier Python pour ${fileName}\n\n# Ce contenu est simulé pour la démonstration\nimport numpy as np\nimport pandas as pd\n\ndef process_data(data):\n    # Traitement des données\n    return data.dropna()\n\nif __name__ == "__main__":\n    print("Exécution du modèle ML")`;
+                        
+                    } else if (fileName.endsWith('.ipynb')) {
+                        fileContent = `{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": "# Notebook d'analyse ML\n\nCe notebook contient l'analyse complète du problème."
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": "import numpy as np\\nimport pandas as pd\\nimport matplotlib.pyplot as plt",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 4
+}`;
+                    } else if (fileName.endsWith('.txt')) {
+                        fileContent = `numpy\npandas\nscikit-learn\nmatplotlib\nseaborn\ntensorflow\n`;
+                    } else if (fileName.endsWith('.md')) {
+                        fileContent = `# Projet ML\n\nCe projet contient une solution ML générée par l'Agent ML.\n\n## Installation\n\n\`\`\`bash\npip install -r requirements.txt\n\`\`\`\n\n## Utilisation\n\nPour exécuter l'analyse, ouvrez le notebook Jupyter.`;
+                    } else {
+                        fileContent = `Contenu du fichier ${fileName}`;
+                    }
+                    
+                    // Déterminer le langage pour la coloration syntaxique
+                    let language = '';
+                    if (fileName.endsWith('.py')) {
+                        language = 'python';
+                    } else if (fileName.endsWith('.ipynb') || fileName.endsWith('.json')) {
+                        language = 'json';
+                    } else if (fileName.endsWith('.md')) {
+                        return fileContentViewer.innerHTML = formatMarkdown(fileContent);
+                    }
+                    
+                    // Afficher le contenu avec la coloration syntaxique
+                    fileContentViewer.innerHTML = `<pre><code class="language-${language}">${fileContent}</code></pre>`;
+                    
+                    // Appliquer la coloration syntaxique
+                    document.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                    });
+                }, 500);
+            }
+            
+            // Écouter les événements de log du serveur
+            socket.on('log', function(data) {
+                addLog(data.type, data.message);
+            });
+            
+            // Écouter l'événement de début de chargement
+            socket.on('loading_start', function() {
+                loading.style.display = 'block';
+                submitButton.disabled = true;
+            });
+            
+            // Écouter l'événement de fin de chargement
+            socket.on('loading_end', function() {
+                loading.style.display = 'none';
+                submitButton.disabled = false;
+            });
+            
+            // Écouter la fin de génération ML
+            socket.on('ml_complete', function(data) {
+                addLog('success', `Solution ML générée dans ${data.project_dir}`);
+                generatedFiles = data.files;
+                projectDir = data.project_dir;
+                updateFileExplorer(data.files, data.project_dir);
+            });
+            
+            // Soumission du formulaire
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const projectName = document.getElementById('project-name').value || 'ml-project';
+                const projectSpecs = document.getElementById('project-specs').value;
+                
+                if (!projectSpecs) {
+                    addLog('error', 'Veuillez décrire le problème ML');
+                    return;
+                }
+                
+                // Réinitialiser l'interface
+                logContainer.innerHTML = '';
+                fileExplorer.innerHTML = '<p class="text-muted">Les fichiers générés s\'afficheront ici...</p>';
+                fileContentViewer.innerHTML = '<p class="text-muted">Sélectionnez un fichier pour afficher son contenu...</p>';
+                analysisContent.innerHTML = '<p class="text-muted">L\'analyse ML s\'affichera ici...</p>';
+                
+                // Envoyer la requête au serveur
+                submitButton.disabled = true;
+                addLog('info', 'Génération de la solution ML...');
+                
+                fetch('/ml_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_name: projectName,
+                        specs: projectSpecs
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Solution ML générée dans ${data.project_dir}`);
+                        generatedFiles = data.files;
+                        projectDir = data.project_dir;
+                        updateFileExplorer(data.files, data.project_dir);
+                    }
+                    submitButton.disabled = false;
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    console.error('Erreur:', error);
+                    submitButton.disabled = false;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

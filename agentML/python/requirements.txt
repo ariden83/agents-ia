@@ -1,0 +1,13 @@
+flask
+flask-cors
+flask-socketio
+boto3
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+jupyter
+eventlet
+requests
+python-dotenv
