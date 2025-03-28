@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Performance</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+        
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .log-info {
+            background-color: #e2f1ff;
+        }
+        
+        .log-success {
+            background-color: #d4edda;
+        }
+        
+        .log-warning {
+            background-color: #fff3cd;
+        }
+        
+        .log-error {
+            background-color: #f8d7da;
+        }
+        
+        .log-code {
+            background-color: #282c34;
+            color: #abb2bf;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .screenshot-container {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .screenshot-container img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+        
+        .metric-card {
+            margin-bottom: 15px;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .metric-label {
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .gauge-container {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .gauge {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .gauge-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .recommendation-section {
+            margin-bottom: 30px;
+        }
+        
+        .loading-spinner {
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .resource-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .stress-test-form {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .recommendation {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #0d6efd;
+            background-color: #f8f9fa;
+        }
+        
+        .critical {
+            border-left-color: #dc3545;
+        }
+        
+        .important {
+            border-left-color: #fd7e14;
+        }
+        
+        .moderate {
+            border-left-color: #0dcaf0;
+        }
+        
+        .tabs-container {
+            margin-top: 20px;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+    </style>
+
+    <style>
+        .log-info { color: #0c5460; }
+        .log-error { color: #721c24; }
+        .log-success { color: #155724; }
+        .log-warning { color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Logs:</h3>
+        <div class="log-container" id="log-container" style="height: 250px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 20px; font-family: 'Courier New', monospace;"></div>
+    </div>
+
+    <div class="container">
+        <h1 class="mb-4 text-center">Agent Performance</h1>
+        
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="h5 mb-0">Analyse de performance web</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="performance-form">
+                            <div class="mb-3">
+                                <label for="url-input" class="form-label">URL de la page web à analyser</label>
+                                <input type="url" class="form-control" id="url-input" placeholder="https://example.com" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="audit-name" class="form-label">Nom de l'audit (optionnel)</label>
+                                <input type="text" class="form-control" id="audit-name" placeholder="Mon audit">
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Démarrer l'audit</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="stress-test-form">
+                    <h3>Test de charge</h3>
+                    <form id="stress-test-form">
+                        <div class="mb-3">
+                            <label for="stress-url-input" class="form-label">URL à tester</label>
+                            <input type="url" class="form-control" id="stress-url-input" placeholder="https://example.com" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="concurrent-users" class="form-label">Utilisateurs simultanés</label>
+                                    <input type="number" class="form-control" id="concurrent-users" min="1" max="100" value="10">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="duration-seconds" class="form-label">Durée (secondes)</label>
+                                    <input type="number" class="form-control" id="duration-seconds" min="1" max="300" value="30">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-warning">Démarrer le test de charge</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="loading-spinner" id="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Chargement...</span>
+            </div>
+            <p class="mt-2">Analyse en cours, veuillez patienter...</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Logs d'exécution</h3>
+                <div class="log-container" id="log-container"></div>
+            </div>
+            <div class="col-md-6">
+                <h3>Capture d'écran</h3>
+                <div class="screenshot-container">
+                    <p id="no-screenshot-message">Aucune capture d'écran disponible</p>
+                    <img id="screenshot" style="display: none;">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabs pour les résultats -->
+        <div class="tabs-container" id="results-tabs" style="display: none;">
+            <ul class="nav nav-tabs" id="resultsTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab">Résumé</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="metrics-tab" data-bs-toggle="tab" data-bs-target="#metrics" type="button" role="tab">Métriques</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="resources-tab" data-bs-toggle="tab" data-bs-target="#resources" type="button" role="tab">Ressources</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="render-tab" data-bs-toggle="tab" data-bs-target="#render" type="button" role="tab">Rendu</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="pagespeed-tab" data-bs-toggle="tab" data-bs-target="#pagespeed" type="button" role="tab">PageSpeed</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="recommendations-tab" data-bs-toggle="tab" data-bs-target="#recommendations" type="button" role="tab">Recommandations</button>
+                </li>
+            </ul>
+            <div class="tab-content p-3 border border-top-0 rounded-bottom" id="resultsTabsContent">
+                <!-- Onglet Résumé -->
+                <div class="tab-pane fade show active" id="summary" role="tabpanel" aria-labelledby="summary-tab">
+                    <h4>Résumé de performance</h4>
+                    <div class="row" id="summary-metrics">
+                        <!-- Sera rempli dynamiquement -->
+                    </div>
+                </div>
+                
+                <!-- Onglet Métriques -->
+                <div class="tab-pane fade" id="metrics" role="tabpanel" aria-labelledby="metrics-tab">
+                    <h4>Métriques détaillées</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Métriques de timing</h5>
+                            <div id="timing-metrics">
+                                <!-- Sera rempli dynamiquement -->
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Métriques DOM</h5>
+                            <div id="dom-metrics">
+                                <!-- Sera rempli dynamiquement -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Onglet Ressources -->
+                <div class="tab-pane fade" id="resources" role="tabpanel" aria-labelledby="resources-tab">
+                    <h4>Analyse des ressources</h4>
+                    <div id="resource-stats">
+                        <!-- Sera rempli dynamiquement -->
+                    </div>
+                    <h5 class="mt-4">Ressources les plus lentes</h5>
+                    <div id="slowest-resources">
+                        <!-- Sera rempli dynamiquement -->
+                    </div>
+                </div>
+                
+                <!-- Onglet Rendu -->
+                <div class="tab-pane fade" id="render" role="tabpanel" aria-labelledby="render-tab">
+                    <h4>Performance de rendu</h4>
+                    <div class="row" id="render-metrics">
+                        <!-- Sera rempli dynamiquement -->
+                    </div>
+                </div>
+                
+                <!-- Onglet PageSpeed -->
+                <div class="tab-pane fade" id="pagespeed" role="tabpanel" aria-labelledby="pagespeed-tab">
+                    <h4>Résultats PageSpeed Insights</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Desktop</h5>
+                            <div id="pagespeed-desktop">
+                                <!-- Sera rempli dynamiquement -->
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Mobile</h5>
+                            <div id="pagespeed-mobile">
+                                <!-- Sera rempli dynamiquement -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Onglet Recommandations -->
+                <div class="tab-pane fade" id="recommendations" role="tabpanel" aria-labelledby="recommendations-tab">
+                    <h4>Recommandations d'optimisation</h4>
+                    <div id="recommendations-content">
+                        <!-- Sera rempli dynamiquement -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Résultats des tests de charge -->
+        <div class="stress-test-results mt-4" id="stress-test-results" style="display: none;">
+            <h3>Résultats du test de charge</h3>
+            <div class="row" id="stress-metrics">
+                <!-- Sera rempli dynamiquement -->
+            </div>
+            <div class="chart-container">
+                <canvas id="stress-chart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+    
+    // Gestionnaire d'événements pour les logs
+    socket.on('log', function(data) {
+        console.log('Log reçu:', data.type, data.message);
+        addLog(data.type, data.message);
+    });
+    
+    // Au moment de la connexion, demander les logs précédents
+    socket.on('connect', function() {
+        console.log('Connexion Socket.IO établie');
+        socket.emit('request_logs');
+    });
+    
+    // Fonction pour ajouter un log
+    function addLog(type, message) {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error("Élément 'log-container' non trouvé");
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-${type}`;
+        logEntry.textContent = message;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+            const logContainer = document.getElementById('log-container');
+            const performanceForm = document.getElementById('performance-form');
+            const stressTestForm = document.getElementById('stress-test-form');
+            const urlInput = document.getElementById('url-input');
+            const auditName = document.getElementById('audit-name');
+            const stressUrlInput = document.getElementById('stress-url-input');
+            const concurrentUsers = document.getElementById('concurrent-users');
+            const durationSeconds = document.getElementById('duration-seconds');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const screenshot = document.getElementById('screenshot');
+            const noScreenshotMessage = document.getElementById('no-screenshot-message');
+            const resultsTabs = document.getElementById('results-tabs');
+            const stressTestResults = document.getElementById('stress-test-results');
+            
+            // Fonction pour ajouter un log
+            function addLogEntry(message, type) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry log-${type}`;
+                logEntry.textContent = message;
+                
+                // Si c'est du code, formater différemment
+                if (type === 'code') {
+                    logEntry.innerHTML = `<pre>${message}</pre>`;
+                }
+                
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Fonction pour formater des millisecondes en texte lisible
+            function formatTime(ms) {
+                if (ms === undefined || ms === null) return 'N/A';
+                if (ms < 1000) return `${Math.round(ms)} ms`;
+                return `${(ms / 1000).toFixed(2)} s`;
+            }
+            
+            // Fonction pour formater la taille en Ko ou Mo
+            function formatSize(kb) {
+                if (kb === undefined || kb === null) return 'N/A';
+                if (kb < 1024) return `${Math.round(kb)} Ko`;
+                return `${(kb / 1024).toFixed(2)} Mo`;
+            }
+            
+            // Fonction pour créer une jauge
+            function createGauge(container, score, label) {
+                const gaugeContainer = document.createElement('div');
+                gaugeContainer.className = 'gauge-container';
+                
+                const canvas = document.createElement('canvas');
+                canvas.className = 'gauge';
+                gaugeContainer.appendChild(canvas);
+                
+                const valueDisplay = document.createElement('div');
+                valueDisplay.className = 'gauge-value';
+                valueDisplay.textContent = Math.round(score * 100);
+                gaugeContainer.appendChild(valueDisplay);
+                
+                container.appendChild(gaugeContainer);
+                
+                const labelElement = document.createElement('div');
+                labelElement.className = 'text-center mt-2';
+                labelElement.textContent = label;
+                container.appendChild(labelElement);
+                
+                // Créer la jauge avec Chart.js
+                new Chart(canvas, {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [score * 100, 100 - score * 100],
+                            backgroundColor: [
+                                getScoreColor(score),
+                                '#e9ecef'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        cutout: '70%',
+                        responsive: true,
+                        circumference: 180,
+                        rotation: -90,
+                        plugins: {
+                            tooltip: {
+                                enabled: false
+                            },
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Fonction pour obtenir la couleur en fonction du score
+            function getScoreColor(score) {
+                if (score >= 0.9) return '#0cce6b'; // Vert
+                if (score >= 0.5) return '#ffa400'; // Orange
+                return '#ff4e42'; // Rouge
+            }
+            
+            // Fonction pour afficher les métriques principales
+            function displaySummaryMetrics(metrics, pagespeed) {
+                const container = document.getElementById('summary-metrics');
+                container.innerHTML = '';
+                
+                // Métriques de temps
+                if (metrics && metrics.timing) {
+                    const timing = metrics.timing;
+                    
+                    addMetricCard(container, 'Temps de chargement', formatTime(timing.loadTime), 'Temps total de chargement de la page');
+                    addMetricCard(container, 'DOM Content Loaded', formatTime(timing.domContentLoaded), 'Temps avant que le DOM soit prêt');
+                    addMetricCard(container, 'First Paint', formatTime(timing.firstPaint), 'Premier affichage');
+                    addMetricCard(container, 'First Contentful Paint', formatTime(timing.firstContentfulPaint), 'Premier affichage de contenu');
+                }
+                
+                // Métriques DOM
+                if (metrics && metrics.dom) {
+                    const dom = metrics.dom;
+                    
+                    addMetricCard(container, 'Taille du DOM', dom.domSize, 'Nombre total d\'éléments dans le DOM');
+                    addMetricCard(container, 'Scripts', dom.scriptTags, 'Nombre de balises script');
+                    addMetricCard(container, 'Feuilles de style', dom.stylesheetTags, 'Nombre de feuilles de style');
+                    addMetricCard(container, 'Images', dom.imageCount, 'Nombre d\'images');
+                }
+                
+                // Scores PageSpeed
+                if (pagespeed) {
+                    const desktopCol = document.createElement('div');
+                    desktopCol.className = 'col-md-6';
+                    desktopCol.innerHTML = '<h5 class="text-center">PageSpeed Desktop</h5>';
+                    
+                    const mobileCol = document.createElement('div');
+                    mobileCol.className = 'col-md-6';
+                    mobileCol.innerHTML = '<h5 class="text-center">PageSpeed Mobile</h5>';
+                    
+                    if (pagespeed.desktop && pagespeed.desktop.lighthouse_scores) {
+                        const desktop = pagespeed.desktop.lighthouse_scores;
+                        const desktopScore = desktop.performance ? desktop.performance.score : 0;
+                        createGauge(desktopCol, desktopScore, 'Performance');
+                    }
+                    
+                    if (pagespeed.mobile && pagespeed.mobile.lighthouse_scores) {
+                        const mobile = pagespeed.mobile.lighthouse_scores;
+                        const mobileScore = mobile.performance ? mobile.performance.score : 0;
+                        createGauge(mobileCol, mobileScore, 'Performance');
+                    }
+                    
+                    container.appendChild(desktopCol);
+                    container.appendChild(mobileCol);
+                }
+            }
+            
+            // Fonction pour ajouter une carte métrique
+            function addMetricCard(container, title, value, description) {
+                const col = document.createElement('div');
+                col.className = 'col-md-3 col-sm-6';
+                
+                col.innerHTML = `
+                    <div class="card metric-card">
+                        <div class="card-body text-center">
+                            <div class="metric-value">${value}</div>
+                            <div class="metric-label" title="${description}">${title}</div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(col);
+            }
+            
+            // Fonction pour afficher les métriques détaillées
+            function displayDetailedMetrics(metrics) {
+                if (!metrics) return;
+                
+                // Métriques de timing
+                const timingContainer = document.getElementById('timing-metrics');
+                timingContainer.innerHTML = '';
+                
+                if (metrics.timing) {
+                    const timing = metrics.timing;
+                    const timingList = document.createElement('ul');
+                    timingList.className = 'list-group';
+                    
+                    for (const [key, value] of Object.entries(timing)) {
+                        const item = document.createElement('li');
+                        item.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        item.innerHTML = `
+                            <span>${key}</span>
+                            <span>${typeof value === 'number' ? formatTime(value) : value}</span>
+                        `;
+                        timingList.appendChild(item);
+                    }
+                    
+                    timingContainer.appendChild(timingList);
+                }
+                
+                // Métriques DOM
+                const domContainer = document.getElementById('dom-metrics');
+                domContainer.innerHTML = '';
+                
+                if (metrics.dom) {
+                    const dom = metrics.dom;
+                    const domList = document.createElement('ul');
+                    domList.className = 'list-group';
+                    
+                    for (const [key, value] of Object.entries(dom)) {
+                        const item = document.createElement('li');
+                        item.className = 'list-group-item d-flex justify-content-between align-items-center';
+                        item.innerHTML = `
+                            <span>${key}</span>
+                            <span>${value}</span>
+                        `;
+                        domList.appendChild(item);
+                    }
+                    
+                    domContainer.appendChild(domList);
+                }
+            }
+            
+            // Fonction pour afficher les statistiques de ressources
+            function displayResourceStats(resources) {
+                if (!resources || !resources.resource_stats) return;
+                
+                const container = document.getElementById('resource-stats');
+                container.innerHTML = '';
+                
+                const stats = resources.resource_stats;
+                const statsTable = document.createElement('table');
+                statsTable.className = 'table table-striped';
+                statsTable.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Nombre</th>
+                            <th>Taille totale</th>
+                            <th>Durée moyenne</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                `;
+                
+                const tbody = statsTable.querySelector('tbody');
+                
+                for (const [type, data] of Object.entries(stats)) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${type}</td>
+                        <td>${data.count}</td>
+                        <td>${formatSize(data.total_size_kb)}</td>
+                        <td>${formatTime(data.avg_duration_ms)}</td>
+                    `;
+                    tbody.appendChild(row);
+                }
+                
+                container.appendChild(statsTable);
+                
+                // Afficher les ressources les plus lentes
+                const slowestContainer = document.getElementById('slowest-resources');
+                slowestContainer.innerHTML = '';
+                
+                const slowestResources = [];
+                for (const [type, data] of Object.entries(stats)) {
+                    if (data.slowest_resources) {
+                        for (const resource of data.slowest_resources) {
+                            slowestResources.push({
+                                ...resource,
+                                type: type
+                            });
+                        }
+                    }
+                }
+                
+                // Trier par durée
+                slowestResources.sort((a, b) => b.duration - a.duration);
+                
+                // Limiter à 10 ressources
+                const topSlowest = slowestResources.slice(0, 10);
+                
+                const slowestTable = document.createElement('table');
+                slowestTable.className = 'table table-striped';
+                slowestTable.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Ressource</th>
+                            <th>Type</th>
+                            <th>Taille</th>
+                            <th>Durée</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                `;
+                
+                const slowestTbody = slowestTable.querySelector('tbody');
+                
+                for (const resource of topSlowest) {
+                    const row = document.createElement('tr');
+                    const url = new URL(resource.name);
+                    const displayName = url.pathname.split('/').pop() || url.hostname;
+                    
+                    row.innerHTML = `
+                        <td title="${resource.name}">${displayName}</td>
+                        <td>${resource.type}</td>
+                        <td>${formatSize(resource.size)}</td>
+                        <td>${formatTime(resource.duration)}</td>
+                    `;
+                    slowestTbody.appendChild(row);
+                }
+                
+                slowestContainer.appendChild(slowestTable);
+            }
+            
+            // Fonction pour afficher les métriques de rendu
+            function displayRenderMetrics(render) {
+                if (!render || !render.render_metrics) return;
+                
+                const container = document.getElementById('render-metrics');
+                container.innerHTML = '';
+                
+                const metrics = render.render_metrics;
+                
+                // Ajouter les métriques principales
+                addMetricCard(container, 'First Paint', formatTime(metrics.firstPaint), 'Premier affichage visuel');
+                addMetricCard(container, 'First Contentful Paint', formatTime(metrics.firstContentfulPaint), 'Premier affichage de contenu');
+                addMetricCard(container, 'Largest Contentful Paint', formatTime(metrics.largestContentfulPaint), 'Plus grand élément de contenu affiché');
+                addMetricCard(container, 'Cumulative Layout Shift', metrics.cumulativeLayoutShift ? metrics.cumulativeLayoutShift.toFixed(3) : 'N/A', 'Décalage cumulatif de mise en page');
+                
+                // Ajouter les informations de layout si disponibles
+                if (render.layout_info) {
+                    const layoutInfo = render.layout_info;
+                    
+                    const layoutSection = document.createElement('div');
+                    layoutSection.className = 'col-12 mt-4';
+                    layoutSection.innerHTML = `
+                        <h5>Informations de layout</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Viewport:</strong> ${layoutInfo.viewport ? layoutInfo.viewport.width + 'x' + layoutInfo.viewport.height : 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Reflows détectés:</strong> ${layoutInfo.reflows || 'N/A'}</p>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(layoutSection);
+                }
+                
+                // Ajouter les informations d'animation si disponibles
+                if (render.animation_info) {
+                    const animationInfo = render.animation_info;
+                    
+                    const animationSection = document.createElement('div');
+                    animationSection.className = 'col-12 mt-2';
+                    animationSection.innerHTML = `
+                        <h5>Informations d'animation</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>requestAnimationFrame:</strong> ${animationInfo.requestAnimationFrameCount || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Animations CSS:</strong> ${animationInfo.cssAnimationCount || 'N/A'}</p>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(animationSection);
+                }
+                
+                // Ajouter les tâches longues si disponibles
+                if (metrics.longTasks && metrics.longTasks.length > 0) {
+                    const longTasksSection = document.createElement('div');
+                    longTasksSection.className = 'col-12 mt-2';
+                    longTasksSection.innerHTML = `
+                        <h5>Tâches longues détectées (${metrics.longTasks.length})</h5>
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Début (ms)</th>
+                                    <th>Durée (ms)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${metrics.longTasks.map(task => `
+                                    <tr>
+                                        <td>${Math.round(task.startTime)}</td>
+                                        <td>${Math.round(task.duration)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    container.appendChild(longTasksSection);
+                }
+            }
+            
+            // Fonction pour afficher les scores PageSpeed
+            function displayPageSpeedScores(pagespeed) {
+                if (!pagespeed) return;
+                
+                // Scores desktop
+                const desktopContainer = document.getElementById('pagespeed-desktop');
+                desktopContainer.innerHTML = '';
+                
+                if (pagespeed.desktop && pagespeed.desktop.lighthouse_scores) {
+                    const desktop = pagespeed.desktop.lighthouse_scores;
+                    
+                    for (const [category, data] of Object.entries(desktop)) {
+                        if (data && typeof data.score === 'number') {
+                            const score = data.score;
+                            const scoreDiv = document.createElement('div');
+                            scoreDiv.className = 'mb-4';
+                            
+                            const scoreGauge = document.createElement('div');
+                            scoreGauge.className = 'd-flex align-items-center mb-2';
+                            
+                            const scoreBar = document.createElement('div');
+                            scoreBar.className = 'progress flex-grow-1 me-2';
+                            scoreBar.style.height = '20px';
+                            
+                            const scoreBarInner = document.createElement('div');
+                            scoreBarInner.className = 'progress-bar';
+                            scoreBarInner.style.width = `${score * 100}%`;
+                            scoreBarInner.style.backgroundColor = getScoreColor(score);
+                            scoreBar.appendChild(scoreBarInner);
+                            
+                            const scoreText = document.createElement('div');
+                            scoreText.className = 'fw-bold';
+                            scoreText.textContent = Math.round(score * 100);
+                            
+                            scoreGauge.appendChild(scoreBar);
+                            scoreGauge.appendChild(scoreText);
+                            
+                            const categoryTitle = document.createElement('div');
+                            categoryTitle.textContent = data.title || category.charAt(0).toUpperCase() + category.slice(1);
+                            
+                            scoreDiv.appendChild(categoryTitle);
+                            scoreDiv.appendChild(scoreGauge);
+                            
+                            desktopContainer.appendChild(scoreDiv);
+                        }
+                    }
+                }
+                
+                // Scores mobile
+                const mobileContainer = document.getElementById('pagespeed-mobile');
+                mobileContainer.innerHTML = '';
+                
+                if (pagespeed.mobile && pagespeed.mobile.lighthouse_scores) {
+                    const mobile = pagespeed.mobile.lighthouse_scores;
+                    
+                    for (const [category, data] of Object.entries(mobile)) {
+                        if (data && typeof data.score === 'number') {
+                            const score = data.score;
+                            const scoreDiv = document.createElement('div');
+                            scoreDiv.className = 'mb-4';
+                            
+                            const scoreGauge = document.createElement('div');
+                            scoreGauge.className = 'd-flex align-items-center mb-2';
+                            
+                            const scoreBar = document.createElement('div');
+                            scoreBar.className = 'progress flex-grow-1 me-2';
+                            scoreBar.style.height = '20px';
+                            
+                            const scoreBarInner = document.createElement('div');
+                            scoreBarInner.className = 'progress-bar';
+                            scoreBarInner.style.width = `${score * 100}%`;
+                            scoreBarInner.style.backgroundColor = getScoreColor(score);
+                            scoreBar.appendChild(scoreBarInner);
+                            
+                            const scoreText = document.createElement('div');
+                            scoreText.className = 'fw-bold';
+                            scoreText.textContent = Math.round(score * 100);
+                            
+                            scoreGauge.appendChild(scoreBar);
+                            scoreGauge.appendChild(scoreText);
+                            
+                            const categoryTitle = document.createElement('div');
+                            categoryTitle.textContent = data.title || category.charAt(0).toUpperCase() + category.slice(1);
+                            
+                            scoreDiv.appendChild(categoryTitle);
+                            scoreDiv.appendChild(scoreGauge);
+                            
+                            mobileContainer.appendChild(scoreDiv);
+                        }
+                    }
+                }
+            }
+            
+            // Fonction pour afficher les recommandations
+            function displayRecommendations(recommendations) {
+                if (!recommendations) return;
+                
+                const container = document.getElementById('recommendations-content');
+                container.innerHTML = recommendations.replace(/\n/g, '<br>');
+            }
+            
+            // Fonction pour afficher les résultats d'un test de charge
+            function displayStressTestResults(results) {
+                if (!results) return;
+                
+                const container = document.getElementById('stress-metrics');
+                container.innerHTML = '';
+                
+                // Métriques principales
+                addMetricCard(container, 'Requêtes par seconde', results.requests_per_second.toFixed(2), 'Nombre de requêtes traitées par seconde');
+                addMetricCard(container, 'Temps de réponse moyen', formatTime(results.avg_response_time * 1000), 'Temps moyen de réponse');
+                addMetricCard(container, 'Taux de réussite', `${results.success_rate.toFixed(1)}%`, 'Pourcentage de requêtes réussies');
+                addMetricCard(container, 'Requêtes totales', results.total_requests, 'Nombre total de requêtes envoyées');
+                
+                // Graphique
+                const ctx = document.getElementById('stress-chart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Min', 'Moyenne', 'Max'],
+                        datasets: [{
+                            label: 'Temps de réponse (secondes)',
+                            data: [
+                                results.min_response_time,
+                                results.avg_response_time,
+                                results.max_response_time
+                            ],
+                            backgroundColor: [
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 99, 132, 0.6)'
+                            ],
+                            borderColor: [
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Temps de réponse (secondes)'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+                
+                // Afficher le conteneur des résultats
+                stressTestResults.style.display = 'block';
+            }
+            
+            // Écouteurs d'événements Socket.IO
+            socket.on('log', function(data) {
+                addLogEntry(data.message, data.type);
+            });
+            
+            socket.on('loading_start', function() {
+                loadingSpinner.style.display = 'block';
+            });
+            
+            socket.on('loading_end', function() {
+                loadingSpinner.style.display = 'none';
+            });
+            
+            socket.on('screenshot_update', function(data) {
+                screenshot.src = `data:image/png;base64,${data.screenshot}`;
+                screenshot.style.display = 'block';
+                noScreenshotMessage.style.display = 'none';
+            });
+            
+            socket.on('audit_complete', function() {
+                addLogEntry('✅ Audit de performance terminé avec succès', 'success');
+            });
+            
+            // Soumission du formulaire d'audit de performance
+            performanceForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Réinitialiser les conteneurs
+                logContainer.innerHTML = '';
+                screenshot.style.display = 'none';
+                noScreenshotMessage.style.display = 'block';
+                resultsTabs.style.display = 'none';
+                stressTestResults.style.display = 'none';
+                
+                // Afficher le spinner de chargement
+                loadingSpinner.style.display = 'block';
+                
+                // Envoyer la requête au serveur
+                fetch('/performance_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: urlInput.value,
+                        audit_name: auditName.value || null
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingSpinner.style.display = 'none';
+                    
+                    if (data.error) {
+                        addLogEntry(`Erreur: ${data.error}`, 'error');
+                    } else {
+                        // Afficher les résultats
+                        displaySummaryMetrics(data.metrics, data.pagespeed);
+                        displayDetailedMetrics(data.metrics);
+                        displayResourceStats(data.resources);
+                        displayRenderMetrics(data.render);
+                        displayPageSpeedScores(data.pagespeed);
+                        displayRecommendations(data.recommendations);
+                        
+                        // Afficher les onglets de résultats
+                        resultsTabs.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    loadingSpinner.style.display = 'none';
+                    addLogEntry(`Erreur: ${error.message}`, 'error');
+                });
+            });
+            
+            // Soumission du formulaire de test de charge
+            stressTestForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Réinitialiser le conteneur de résultats
+                stressTestResults.style.display = 'none';
+                
+                // Afficher le spinner de chargement
+                loadingSpinner.style.display = 'block';
+                
+                // Envoyer la requête au serveur
+                fetch('/stress_test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: stressUrlInput.value,
+                        concurrent_users: parseInt(concurrentUsers.value),
+                        duration_seconds: parseInt(durationSeconds.value)
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingSpinner.style.display = 'none';
+                    
+                    if (data.error) {
+                        addLogEntry(`Erreur: ${data.error}`, 'error');
+                    } else {
+                        // Afficher les résultats
+                        displayStressTestResults(data);
+                    }
+                })
+                .catch(error => {
+                    loadingSpinner.style.display = 'none';
+                    addLogEntry(`Erreur: ${error.message}`, 'error');
+                });
+            });
+            
+            // Remplir automatiquement l'URL du test de charge à partir de l'URL d'audit
+            urlInput.addEventListener('change', function() {
+                stressUrlInput.value = urlInput.value;
+            });
+        });
+    </script>
+</body>
+</html>
