@@ -1,0 +1,7 @@
+flask==2.2.5
+flask-cors==3.0.10
+flask-socketio==5.3.2
+boto3==1.28.15
+pillow==9.5.0
+eventlet==0.33.3
+python-dotenv==1.0.0

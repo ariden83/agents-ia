@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent UX Designer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/html.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/css.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        
+        .container-fluid {
+            max-width: 1400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 200px;
+            font-family: 'Courier New', Courier, monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .section-container {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        
+        .log-container {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-info {
+            color: #0c5460;
+        }
+        
+        .log-error {
+            color: #721c24;
+        }
+        
+        .log-success {
+            color: #155724;
+        }
+        
+        .log-warning {
+            color: #856404;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .btn-primary {
+            background-color: #6200ee;
+            border-color: #6200ee;
+        }
+        
+        .btn-primary:hover {
+            background-color: #5100c5;
+            border-color: #5100c5;
+        }
+        
+        .wireframe-container {
+            background-color: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        
+        .wireframe-pre {
+            font-family: 'Courier New', monospace;
+            line-height: 1.2;
+            white-space: pre;
+            margin: 0;
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        
+        .tab-content {
+            padding-top: 20px;
+        }
+        
+        .project-info {
+            background-color: #e8f4f8;
+            border: 1px solid #d1e7dd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .color-palette {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        
+        .color-swatch {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .design-icon {
+            height: 40px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        .section-header {
+            color: #6200ee;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .design-feature {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .design-feature h5 {
+            color: #6200ee;
+            margin-bottom: 10px;
+        }
+    </style>
+
+    <style>
+        .log-info { color: #0c5460; }
+        .log-error { color: #721c24; }
+        .log-success { color: #155724; }
+        .log-warning { color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Logs:</h3>
+        <div class="log-container" id="log-container" style="height: 250px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 20px; font-family: 'Courier New', monospace;"></div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="header">
+            <h1>
+                <svg class="design-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 7H22M6 12H18M11 17H13" stroke="#6200ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="2" y="2" width="20" height="20" rx="5" stroke="#6200ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Agent UX Designer
+            </h1>
+            <p class="lead">Conception d'interfaces utilisateur intuitives et attrayantes</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-section">
+                    <form id="uxRequestForm">
+                        <div class="form-group">
+                            <label for="project-name">Nom du Projet:</label>
+                            <input type="text" class="form-control" id="project-name" placeholder="mon-projet-ux">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-specs">Spécifications UX:</label>
+                            <textarea class="form-control" id="project-specs" rows="10" placeholder="Décrivez en détail le projet UX : objectifs, utilisateurs cibles, fonctionnalités principales, contexte d'utilisation..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-constraints">Contraintes (optionnel):</label>
+                            <textarea class="form-control" id="project-constraints" rows="5" placeholder="Contraintes de design : plateforme (web, mobile, desktop), exigences d'accessibilité, limites techniques, identité de marque, etc."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" id="submit-button">
+                            Générer Conception UX
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="log-section mt-4">
+                    <h4>Logs:</h4>
+                    <div class="log-container" id="log-container"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="loading" id="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p>Génération de la conception UX en cours, veuillez patienter...</p>
+                </div>
+                
+                <div class="project-info" id="project-info" style="display: none;">
+                    <h4>Conception UX générée</h4>
+                    <p><strong>Répertoire:</strong> <span class="project-path" id="project-path"></span></p>
+                </div>
+                
+                <ul class="nav nav-tabs" id="resultTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="wireframes-tab" data-bs-toggle="tab" data-bs-target="#wireframes" type="button" role="tab" aria-controls="wireframes" aria-selected="true">Wireframes</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#analysis" type="button" role="tab" aria-controls="analysis" aria-selected="false">Analyse UX</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="resultTabsContent">
+                    <div class="tab-pane fade show active" id="wireframes" role="tabpanel" aria-labelledby="wireframes-tab">
+                        <div class="wireframes-container mt-3" id="wireframes-container">
+                            <p class="text-muted">Les wireframes s'afficheront ici...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="analysis" role="tabpanel" aria-labelledby="analysis-tab">
+                        <div class="markdown-content mt-3" id="analysis-content">
+                            <p class="text-muted">L'analyse UX s'affichera ici...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="design-feature">
+                            <h5>Architecture de l'Information</h5>
+                            <p>Organisation logique du contenu et des fonctionnalités</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="design-feature">
+                            <h5>Flow Utilisateur</h5>
+                            <p>Parcours utilisateur fluides et intuitifs</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="design-feature">
+                            <h5>Wireframes ASCII</h5>
+                            <p>Représentations visuelles des interfaces</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="design-feature">
+                            <h5>Principes UX</h5>
+                            <p>Conception centrée sur l'utilisateur</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+    
+    // Gestionnaire d'événements pour les logs
+    socket.on('log', function(data) {
+        console.log('Log reçu:', data.type, data.message);
+        addLog(data.type, data.message);
+    });
+    
+    // Au moment de la connexion, demander les logs précédents
+    socket.on('connect', function() {
+        console.log('Connexion Socket.IO établie');
+        socket.emit('request_logs');
+    });
+    
+    // Fonction pour ajouter un log
+    function addLog(type, message) {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error("Élément 'log-container' non trouvé");
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-${type}`;
+        logEntry.textContent = message;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+            const logContainer = document.getElementById('log-container');
+            const loading = document.getElementById('loading');
+            const form = document.getElementById('uxRequestForm');
+            const submitButton = document.getElementById('submit-button');
+            const wireframesContainer = document.getElementById('wireframes-container');
+            const analysisContent = document.getElementById('analysis-content');
+            const projectInfo = document.getElementById('project-info');
+            const projectPath = document.getElementById('project-path');
+            
+            // Fonction pour ajouter un log
+            function addLog(type, message) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-${type}`;
+                logEntry.textContent = message;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Formatage Markdown avec coloration syntaxique
+            function formatMarkdown(markdown) {
+                marked.setOptions({
+                    highlight: function(code, lang) {
+                        if (lang && hljs.getLanguage(lang)) {
+                            return hljs.highlight(code, { language: lang }).value;
+                        } else {
+                            return hljs.highlightAuto(code).value;
+                        }
+                    }
+                });
+                
+                const formattedMarkdown = marked.parse(markdown);
+                return formattedMarkdown;
+            }
+            
+            // Afficher les wireframes ASCII
+            function displayWireframes(wireframes) {
+                wireframesContainer.innerHTML = '';
+                
+                if (!wireframes || wireframes.length === 0) {
+                    wireframesContainer.innerHTML = '<p class="text-muted">Aucun wireframe disponible</p>';
+                    return;
+                }
+                
+                wireframes.forEach((wireframe, index) => {
+                    const wireframeDiv = document.createElement('div');
+                    wireframeDiv.className = 'wireframe-container';
+                    
+                    const wireframeTitle = document.createElement('h5');
+                    wireframeTitle.className = 'section-header';
+                    wireframeTitle.textContent = `Wireframe ${index + 1}`;
+                    
+                    const wireframePre = document.createElement('pre');
+                    wireframePre.className = 'wireframe-pre';
+                    wireframePre.textContent = wireframe;
+                    
+                    wireframeDiv.appendChild(wireframeTitle);
+                    wireframeDiv.appendChild(wireframePre);
+                    wireframesContainer.appendChild(wireframeDiv);
+                });
+            }
+            
+            // Écouter les événements de log du serveur
+            socket.on('log', function(data) {
+                addLog(data.type, data.message);
+            });
+            
+            // Écouter l'événement de début de chargement
+            socket.on('loading_start', function() {
+                loading.style.display = 'block';
+                submitButton.disabled = true;
+            });
+            
+            // Écouter l'événement de fin de chargement
+            socket.on('loading_end', function() {
+                loading.style.display = 'none';
+                submitButton.disabled = false;
+            });
+            
+            // Écouter la fin de génération UX
+            socket.on('ux_complete', function(data) {
+                addLog('success', `Conception UX générée dans ${data.project_dir}`);
+                projectInfo.style.display = 'block';
+                projectPath.textContent = data.project_dir;
+            });
+            
+            // Soumission du formulaire
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const projectName = document.getElementById('project-name').value || 'ux-design-project';
+                const projectSpecs = document.getElementById('project-specs').value;
+                const projectConstraints = document.getElementById('project-constraints').value;
+                
+                if (!projectSpecs) {
+                    addLog('error', 'Veuillez fournir les spécifications UX');
+                    return;
+                }
+                
+                // Réinitialiser l'interface
+                logContainer.innerHTML = '';
+                wireframesContainer.innerHTML = '<p class="text-muted">Les wireframes s\'afficheront ici...</p>';
+                analysisContent.innerHTML = '<p class="text-muted">L\'analyse UX s\'affichera ici...</p>';
+                projectInfo.style.display = 'none';
+                
+                // Envoyer la requête au serveur
+                submitButton.disabled = true;
+                addLog('info', 'Génération de la conception UX...');
+                
+                fetch('/ux_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_name: projectName,
+                        specs: projectSpecs,
+                        constraints: projectConstraints || null
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Conception UX générée pour le projet ${data.project_name}`);
+                        
+                        // Mettre à jour l'affichage
+                        projectInfo.style.display = 'block';
+                        projectPath.textContent = data.project_dir;
+                        
+                        // Afficher les wireframes
+                        displayWireframes(data.ascii_wireframes);
+                        
+                        // Afficher l'analyse
+                        analysisContent.innerHTML = formatMarkdown(data.analysis);
+                    }
+                    submitButton.disabled = false;
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    console.error('Erreur:', error);
+                    submitButton.disabled = false;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
