@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Product Owner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/markdown.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        
+        .container-fluid {
+            max-width: 1400px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-weight: 700;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 8px;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+            font-family: 'Courier New', Courier, monospace;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .section-container {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 20px;
+        }
+        
+        .log-container {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-info {
+            color: #0c5460;
+        }
+        
+        .log-error {
+            color: #721c24;
+        }
+        
+        .log-success {
+            color: #155724;
+        }
+        
+        .log-warning {
+            color: #856404;
+        }
+        
+        pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.9em;
+        }
+        
+        .btn-primary {
+            background-color: #7749F8;
+            border-color: #7749F8;
+        }
+        
+        .btn-primary:hover {
+            background-color: #6039D0;
+            border-color: #6039D0;
+        }
+        
+        .idea-card {
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+        
+        .idea-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .idea-card .card-header {
+            background-color: #7749F8;
+            color: white;
+            font-weight: 600;
+            border-radius: 6px 6px 0 0;
+        }
+        
+        .idea-card .card-footer {
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .feature-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            margin-right: 5px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .tag-high {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .tag-medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .tag-low {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .tag-easy {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .tag-medium {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .tag-complex {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .markdown-content {
+            padding: 20px;
+            background-color: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .markdown-content h1 {
+            font-size: 2em;
+            color: #333;
+            margin-bottom: 0.5em;
+        }
+        
+        .markdown-content h2 {
+            font-size: 1.5em;
+            color: #444;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .markdown-content h3 {
+            font-size: 1.3em;
+            color: #555;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+        
+        .markdown-content p {
+            margin-bottom: 1em;
+        }
+        
+        .markdown-content ul, .markdown-content ol {
+            margin-bottom: 1em;
+            padding-left: 2em;
+        }
+        
+        .markdown-content blockquote {
+            padding: 0.5em 1em;
+            margin-left: 0;
+            background-color: #f8f9fa;
+            border-left: 4px solid #7749F8;
+        }
+        
+        .markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 1em;
+        }
+        
+        .markdown-content th, .markdown-content td {
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        .markdown-content th {
+            background-color: #f5f7fa;
+            font-weight: 600;
+        }
+        
+        .trend-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 0 5px 5px 0;
+            border-radius: 20px;
+            background-color: #e6e6fa;
+            color: #7749F8;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+        
+        .idea-section {
+            margin-top: 15px;
+        }
+        
+        .icon-header {
+            display: inline-block;
+            margin-right: 10px;
+            font-size: 24px;
+            color: #7749F8;
+        }
+        
+        .hero-section {
+            background-color: #f6f2ff;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section h2 {
+            font-size: 1.8em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #6039D0;
+        }
+        
+        .hero-section p {
+            font-size: 1.1em;
+            max-width: 80%;
+        }
+        
+        .feature-icon {
+            font-size: 2.5em;
+            color: #7749F8;
+            margin-bottom: 15px;
+        }
+        
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            font-size: 0.8em;
+            background-color: #7749F8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .copy-button:hover {
+            background-color: #6039D0;
+        }
+    </style>
+
+    <style>
+        .log-info { color: #0c5460; }
+        .log-error { color: #721c24; }
+        .log-success { color: #155724; }
+        .log-warning { color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Logs:</h3>
+        <div class="log-container" id="log-container" style="height: 250px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 20px; font-family: 'Courier New', monospace;"></div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="header">
+            <h1>
+                <i class="bi bi-lightbulb-fill icon-header"></i>
+                Agent Product Owner
+            </h1>
+            <p class="lead">Génération d'idées innovantes et analyse des tendances pour enrichir votre projet</p>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="hero-section mb-4">
+                    <h2>Enrichissez votre vision produit</h2>
+                    <p>Découvrez des fonctionnalités innovantes basées sur les dernières tendances dans votre domaine.</p>
+                    <i class="bi bi-stars feature-icon"></i>
+                </div>
+                
+                <div class="form-section">
+                    <form id="poRequestForm">
+                        <div class="form-group">
+                            <label for="project-name">Nom du Projet:</label>
+                            <input type="text" class="form-control" id="project-name" placeholder="Mon projet innovant">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-description">Description du Projet:</label>
+                            <textarea class="form-control" id="project-description" rows="6" placeholder="Décrivez votre projet, ses objectifs, ses fonctionnalités actuelles..."></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="industry">Secteur d'Activité (optionnel):</label>
+                            <input type="text" class="form-control" id="industry" placeholder="Ex: E-commerce, Finance, Santé, Éducation...">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="target-audience">Public Cible (optionnel):</label>
+                            <input type="text" class="form-control" id="target-audience" placeholder="Ex: Professionnels, Étudiants, Familles...">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="additional-context">Contexte Supplémentaire (optionnel):</label>
+                            <textarea class="form-control" id="additional-context" rows="4" placeholder="Contraintes, objectifs business, concurrents..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" id="submit-button">
+                            <i class="bi bi-magic"></i> Générer des Suggestions
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="log-section mt-4">
+                    <h4>Logs:</h4>
+                    <div class="log-container" id="log-container"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <div class="loading" id="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p>Analyse des tendances et génération de suggestions innovantes en cours, veuillez patienter...</p>
+                </div>
+                
+                <div class="suggestions-container" id="suggestions-container">
+                    <div class="markdown-content" id="suggestions-content">
+                        <p class="text-muted">Les suggestions s'afficheront ici après génération...</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button class="btn btn-primary" id="copy-to-clipboard" style="display: none;">
+                            <i class="bi bi-clipboard"></i> Copier les Suggestions
+                        </button>
+                        <button class="btn btn-outline-secondary" id="save-suggestions" style="display: none; margin-left: 10px;">
+                            <i class="bi bi-file-earmark-text"></i> Télécharger en Markdown
+                        </button>
+                        <button class="btn btn-success" id="submit-to-pm" style="display: none; margin-left: 10px;">
+                            <i class="bi bi-arrow-right-circle"></i> Soumettre au Chef de Projet
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+    
+    // Gestionnaire d'événements pour les logs
+    socket.on('log', function(data) {
+        console.log('Log reçu:', data.type, data.message);
+        addLog(data.type, data.message);
+    });
+    
+    // Au moment de la connexion, demander les logs précédents
+    socket.on('connect', function() {
+        console.log('Connexion Socket.IO établie');
+        socket.emit('request_logs');
+    });
+    
+    // Fonction pour ajouter un log
+    function addLog(type, message) {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error("Élément 'log-container' non trouvé");
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-${type}`;
+        logEntry.textContent = message;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+            const logContainer = document.getElementById('log-container');
+            const loading = document.getElementById('loading');
+            const form = document.getElementById('poRequestForm');
+            const submitButton = document.getElementById('submit-button');
+            const suggestionsContainer = document.getElementById('suggestions-container');
+            const suggestionsContent = document.getElementById('suggestions-content');
+            const copyButton = document.getElementById('copy-to-clipboard');
+            const saveButton = document.getElementById('save-suggestions');
+            const submitToPMButton = document.getElementById('submit-to-pm');
+            
+            let currentSuggestions = '';
+            
+            // Fonction pour ajouter un log
+            function addLog(type, message) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-${type}`;
+                logEntry.textContent = message;
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Formatage Markdown avec coloration syntaxique
+            function formatMarkdown(markdown) {
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true
+                });
+                
+                const formattedMarkdown = marked.parse(markdown);
+                return formattedMarkdown;
+            }
+            
+            // Fonction pour télécharger les suggestions en fichier Markdown
+            function downloadMarkdown(content, fileName) {
+                const blob = new Blob([content], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            
+            // Fonction pour copier le texte dans le presse-papier
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const originalText = copyButton.innerHTML;
+                    copyButton.innerHTML = '<i class="bi bi-check2"></i> Copié!';
+                    setTimeout(() => {
+                        copyButton.innerHTML = originalText;
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Erreur lors de la copie:', err);
+                });
+            }
+            
+            // Écouter les événements de log du serveur
+            socket.on('log', function(data) {
+                addLog(data.type, data.message);
+            });
+            
+            // Écouter l'événement de début de chargement
+            socket.on('loading_start', function() {
+                loading.style.display = 'block';
+                submitButton.disabled = true;
+            });
+            
+            // Écouter l'événement de fin de chargement
+            socket.on('loading_end', function() {
+                loading.style.display = 'none';
+                submitButton.disabled = false;
+            });
+            
+            // Écouter la fin de génération des suggestions
+            socket.on('po_complete', function(data) {
+                addLog('success', `Suggestions générées pour ${data.project_name}`);
+            });
+            
+            // Gérer le clic sur le bouton de copie
+            copyButton.addEventListener('click', function() {
+                copyToClipboard(currentSuggestions);
+            });
+            
+            // Gérer le clic sur le bouton de sauvegarde
+            saveButton.addEventListener('click', function() {
+                const projectName = document.getElementById('project-name').value || 'projet';
+                const fileName = `suggestions_${projectName.toLowerCase().replace(/\s+/g, '_')}.md`;
+                downloadMarkdown(currentSuggestions, fileName);
+            });
+            
+            // Gérer le clic sur le bouton de soumission au Chef de Projet
+            submitToPMButton.addEventListener('click', function() {
+                // Cette fonctionnalité pourrait être implémentée pour communiquer avec l'agent Chef de Projet
+                alert("Cette fonctionnalité sera implémentée pour intégrer directement vos suggestions dans l'Agent Chef de Projet.");
+            });
+            
+            // Soumission du formulaire
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const projectName = document.getElementById('project-name').value || 'Mon Projet';
+                const projectDescription = document.getElementById('project-description').value;
+                const industry = document.getElementById('industry').value || null;
+                const targetAudience = document.getElementById('target-audience').value || null;
+                const additionalContext = document.getElementById('additional-context').value || null;
+                
+                if (!projectDescription) {
+                    addLog('error', 'Veuillez décrire le projet');
+                    return;
+                }
+                
+                // Réinitialiser l'interface
+                logContainer.innerHTML = '';
+                suggestionsContent.innerHTML = '<p class="text-muted">Les suggestions s\'afficheront ici après génération...</p>';
+                copyButton.style.display = 'none';
+                saveButton.style.display = 'none';
+                submitToPMButton.style.display = 'none';
+                
+                // Envoyer la requête au serveur
+                submitButton.disabled = true;
+                addLog('info', 'Analyse des tendances et génération de suggestions...');
+                
+                fetch('/po_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_name: projectName,
+                        description: projectDescription,
+                        industry: industry,
+                        target_audience: targetAudience,
+                        additional_context: additionalContext
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLog('error', `Erreur: ${data.error}`);
+                    } else {
+                        addLog('success', `Suggestions générées pour ${data.project_name}`);
+                        
+                        // Afficher les suggestions formatées
+                        currentSuggestions = data.suggestions;
+                        suggestionsContent.innerHTML = formatMarkdown(data.suggestions);
+                        
+                        // Afficher les boutons d'action
+                        copyButton.style.display = 'inline-block';
+                        saveButton.style.display = 'inline-block';
+                        submitToPMButton.style.display = 'inline-block';
+                        
+                        // Mettre en évidence les tendances
+                        document.querySelectorAll('#suggestions-content h2').forEach(h2 => {
+                            if (h2.textContent.includes('Tendances')) {
+                                const trendsList = h2.nextElementSibling;
+                                if (trendsList && trendsList.tagName === 'UL') {
+                                    const trends = Array.from(trendsList.querySelectorAll('li')).map(li => li.textContent);
+                                    
+                                    // Créer les badges de tendances
+                                    const trendsContainer = document.createElement('div');
+                                    trendsContainer.className = 'trends-container';
+                                    trends.forEach(trend => {
+                                        const trendBadge = document.createElement('span');
+                                        trendBadge.className = 'trend-badge';
+                                        trendBadge.textContent = trend.split(':')[0].trim();
+                                        trendsContainer.appendChild(trendBadge);
+                                    });
+                                    
+                                    // Insérer après le titre
+                                    h2.after(trendsContainer);
+                                }
+                            }
+                        });
+                    }
+                    submitButton.disabled = false;
+                })
+                .catch((error) => {
+                    addLog('error', `Erreur: ${error.message}`);
+                    console.error('Erreur:', error);
+                    submitButton.disabled = false;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
