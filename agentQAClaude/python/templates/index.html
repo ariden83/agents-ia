@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent QA Claude</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+        
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .log-info {
+            background-color: #e2f1ff;
+        }
+        
+        .log-success {
+            background-color: #d4edda;
+        }
+        
+        .log-warning {
+            background-color: #fff3cd;
+        }
+        
+        .log-error {
+            background-color: #f8d7da;
+        }
+        
+        .log-code {
+            background-color: #282c34;
+            color: #abb2bf;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .log-retry {
+            background-color: #e8eaed;
+            border-left: 3px solid #5f6368;
+            padding-left: 10px;
+        }
+        
+        .screenshot-container {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .screenshot-container img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+        }
+        
+        .action-prompt {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e2f1ff;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .analysis-container, .plan-container, .report-container {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .loading-spinner {
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+    </style>
+
+    <style>
+        .log-info { color: #0c5460; }
+        .log-error { color: #721c24; }
+        .log-success { color: #155724; }
+        .log-warning { color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h3>Logs:</h3>
+        <div class="log-container" id="log-container" style="height: 250px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 10px; margin-bottom: 20px; font-family: 'Courier New', monospace;"></div>
+    </div>
+
+    <div class="container">
+        <h1 class="mb-4 text-center">Agent QA Claude</h1>
+        
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="h5 mb-0">Test d'interface web avec Claude 3 Sonnet</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="qa-form">
+                            <div class="mb-3">
+                                <label for="url-input" class="form-label">URL de la page web à tester</label>
+                                <input type="url" class="form-control" id="url-input" placeholder="https://example.com" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="task-input" class="form-label">Description du test à réaliser</label>
+                                <textarea class="form-control" id="task-input" rows="5" placeholder="Décrivez les tests à effectuer sur cette page web..." required></textarea>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Exécuter le test</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="loading-spinner" id="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Chargement...</span>
+            </div>
+            <p class="mt-2">Traitement en cours, veuillez patienter...</p>
+        </div>
+        
+        <div class="action-prompt" id="action-prompt">
+            <p><strong>Action requise :</strong> Veuillez vérifier les actions effectuées et confirmer pour continuer.</p>
+            <button class="btn btn-success" id="action-confirm-btn">Confirmer</button>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Logs d'exécution</h3>
+                <div class="log-container" id="log-container"></div>
+            </div>
+            <div class="col-md-6">
+                <h3>Capture d'écran</h3>
+                <div class="screenshot-container">
+                    <p id="no-screenshot-message">Aucune capture d'écran disponible</p>
+                    <img id="screenshot" style="display: none;">
+                </div>
+            </div>
+        </div>
+        
+        <div class="analysis-container" id="analysis-container">
+            <h3>Analyse de la tâche</h3>
+            <div id="task-analysis"></div>
+        </div>
+        
+        <div class="plan-container" id="plan-container">
+            <h3>Plan d'action</h3>
+            <div id="action-plan"></div>
+        </div>
+        
+        <div class="report-container" id="report-container">
+            <h3>Rapport de test</h3>
+            <div id="test-report"></div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+    
+    // Gestionnaire d'événements pour les logs
+    socket.on('log', function(data) {
+        console.log('Log reçu:', data.type, data.message);
+        addLog(data.type, data.message);
+    });
+    
+    // Au moment de la connexion, demander les logs précédents
+    socket.on('connect', function() {
+        console.log('Connexion Socket.IO établie');
+        socket.emit('request_logs');
+    });
+    
+    // Fonction pour ajouter un log
+    function addLog(type, message) {
+        const logContainer = document.getElementById('log-container');
+        if (!logContainer) {
+            console.error("Élément 'log-container' non trouvé");
+            return;
+        }
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-${type}`;
+        logEntry.textContent = message;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+            const logContainer = document.getElementById('log-container');
+            const qaForm = document.getElementById('qa-form');
+            const urlInput = document.getElementById('url-input');
+            const taskInput = document.getElementById('task-input');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const screenshot = document.getElementById('screenshot');
+            const noScreenshotMessage = document.getElementById('no-screenshot-message');
+            const actionPrompt = document.getElementById('action-prompt');
+            const actionConfirmBtn = document.getElementById('action-confirm-btn');
+            const analysisContainer = document.getElementById('analysis-container');
+            const taskAnalysis = document.getElementById('task-analysis');
+            const planContainer = document.getElementById('plan-container');
+            const actionPlan = document.getElementById('action-plan');
+            const reportContainer = document.getElementById('report-container');
+            const testReport = document.getElementById('test-report');
+            
+            // Fonction pour ajouter un log
+            function addLogEntry(message, type) {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry log-${type}`;
+                logEntry.textContent = message;
+                
+                // Si c'est du code, formater différemment
+                if (type === 'code' || type === 'retry') {
+                    logEntry.innerHTML = `<pre>${message}</pre>`;
+                }
+                
+                logContainer.appendChild(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            
+            // Écouteurs d'événements Socket.IO
+            socket.on('log', function(data) {
+                addLogEntry(data.message, data.type);
+            });
+            
+            socket.on('loading_start', function() {
+                loadingSpinner.style.display = 'block';
+            });
+            
+            socket.on('loading_end', function() {
+                loadingSpinner.style.display = 'none';
+            });
+            
+            socket.on('screenshot_update', function(data) {
+                screenshot.src = `data:image/png;base64,${data.screenshot}`;
+                screenshot.style.display = 'block';
+                noScreenshotMessage.style.display = 'none';
+            });
+            
+            socket.on('wait_for_user_action', function() {
+                actionPrompt.style.display = 'block';
+            });
+            
+            socket.on('task_analysis', function(data) {
+                taskAnalysis.innerHTML = data.analysis.replace(/\n/g, '<br>');
+                analysisContainer.style.display = 'block';
+            });
+            
+            socket.on('action_plan', function(data) {
+                actionPlan.innerHTML = data.plan.replace(/\n/g, '<br>');
+                planContainer.style.display = 'block';
+            });
+            
+            socket.on('test_report', function(data) {
+                testReport.innerHTML = data.report.replace(/\n/g, '<br>');
+                reportContainer.style.display = 'block';
+            });
+            
+            socket.on('test_complete', function() {
+                addLogEntry('✅ Test terminé avec succès', 'success');
+            });
+            
+            // Soumission du formulaire
+            qaForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Réinitialiser les conteneurs
+                logContainer.innerHTML = '';
+                screenshot.style.display = 'none';
+                noScreenshotMessage.style.display = 'block';
+                analysisContainer.style.display = 'none';
+                planContainer.style.display = 'none';
+                reportContainer.style.display = 'none';
+                
+                // Afficher le spinner de chargement
+                loadingSpinner.style.display = 'block';
+                
+                // Envoyer la requête au serveur
+                fetch('/qa_request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: urlInput.value,
+                        input: taskInput.value
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingSpinner.style.display = 'none';
+                    
+                    if (data.error) {
+                        addLogEntry(`Erreur: ${data.error}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    loadingSpinner.style.display = 'none';
+                    addLogEntry(`Erreur: ${error.message}`, 'error');
+                });
+            });
+            
+            // Confirmation d'action utilisateur
+            actionConfirmBtn.addEventListener('click', function() {
+                actionPrompt.style.display = 'none';
+                socket.emit('user_action_done');
+            });
+        });
+    </script>
+</body>
+</html>
